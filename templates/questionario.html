@@ -412,29 +412,25 @@ $(document).ready(function() {
     atualizarProgresso();
     mostrarEtapa(0);
 });
-</script>
-{% endblock %}
-const totalPerguntas = parseInt('{{ perguntas|length }}');
-const respostas = {};
 
-// Carregar dados da empresa do sessionStorage  
-const dadosEmpresa = JSON.parse(sessionStorage.getItem('dadosEmpresa') || '{}');
+// Usar as variáveis já declaradas acima
+const totalPerguntas = parseInt('{{ perguntas|length }}');
 
 // Função para atualizar a barra de progresso
 function atualizarProgresso() {
-    const porcentagem = Math.round((perguntaAtual / totalPerguntas) * 100);
+    const porcentagem = Math.round((etapaAtual / totalEtapas) * 100);
     document.getElementById('progressBar').style.width = porcentagem + '%';
-    document.getElementById('questaoAtual').textContent = perguntaAtual;
+    document.getElementById('etapaAtual').textContent = etapaAtual + 1;
     document.getElementById('porcentagem').textContent = porcentagem;
 }
 
 // Função para verificar se a pergunta atual foi respondida
 function verificarResposta() {
-    const opcaoSelecionada = document.querySelector('input[name="pergunta_' + perguntaAtual + '"]:checked');
-    const botaoProximo = document.querySelector('.pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-success');
+    const opcaoSelecionada = document.querySelector('input[name="pergunta_' + etapaAtual + '"]:checked');
+    const botaoProximo = document.querySelector('.pergunta-container[data-pergunta="' + etapaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + etapaAtual + '"] .btn-success');
     
     if (opcaoSelecionada) {
-        respostas[perguntaAtual] = opcaoSelecionada.value;
+        respostas[etapaAtual] = opcaoSelecionada.value;
         if (botaoProximo) {
             botaoProximo.disabled = false;
         }
@@ -447,14 +443,14 @@ function verificarResposta() {
 
 // Função para ir para a próxima pergunta
 function proximaPergunta() {
-    if (perguntaAtual < totalPerguntas) {
+    if (etapaAtual < totalEtapas - 1) {
         // Esconder pergunta atual
-        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'none';
+        document.querySelector(`[data-pergunta="${etapaAtual}"]`).style.display = 'none';
         
-        perguntaAtual++;
+        etapaAtual++;
         
         // Mostrar próxima pergunta
-        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'block';
+        document.querySelector(`[data-pergunta="${etapaAtual}"]`).style.display = 'block';
         
         atualizarProgresso();
         verificarResposta();
@@ -463,14 +459,14 @@ function proximaPergunta() {
 
 // Função para voltar para a pergunta anterior
 function voltarPergunta() {
-    if (perguntaAtual > 1) {
+    if (etapaAtual > 0) {
         // Esconder pergunta atual
-        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'none';
+        document.querySelector(`[data-pergunta="${etapaAtual}"]`).style.display = 'none';
         
-        perguntaAtual--;
+        etapaAtual--;
         
         // Mostrar pergunta anterior
-        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'block';
+        document.querySelector(`[data-pergunta="${etapaAtual}"]`).style.display = 'block';
         
         atualizarProgresso();
         verificarResposta();

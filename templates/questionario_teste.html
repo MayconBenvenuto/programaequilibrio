@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Questionário - Teste{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1>Teste - Questionário</h1>
+    <p>CNPJ: {{ cnpj }}</p>
+    <p>Dados: {{ dados_empresa }}</p>
+    
+    {% if perguntas %}
+        <p>Total de perguntas: {{ perguntas|length }}</p>
+        {% for pergunta in perguntas %}
+            <div>
+                <h3>{{ pergunta.pergunta }}</h3>
+                {% for opcao in pergunta.opcoes %}
+                    <p>- {{ opcao }}</p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
