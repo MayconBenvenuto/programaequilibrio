@@ -71,15 +71,25 @@
                     <div class="card-body">
                         <form id="formDadosEmpresa">
                             <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label fw-bold">CNPJ *</label>
+                                    <input type="text" class="form-control" name="cnpj" id="cnpjInput"
+                                           placeholder="00.000.000/0001-00" maxlength="18" required>
+                                    <div class="invalid-feedback" id="cnpjError"></div>
+                                    <div class="valid-feedback">CNPJ válido! Dados preenchidos automaticamente.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Razão Social *</label>
-                                    <input type="text" class="form-control" name="razao_social" 
+                                    <input type="text" class="form-control" name="razao_social" id="razaoSocialInput"
                                            placeholder="Ex: Belz Conecta Saúde Ltda" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">CNPJ</label>
-                                    <input type="text" class="form-control" name="cnpj" 
-                                           placeholder="00.000.000/0001-00">
+                                    <label class="form-label fw-bold">Nome Fantasia</label>
+                                    <input type="text" class="form-control" name="nome_fantasia" id="nomeFantasiaInput"
+                                           placeholder="Nome fantasia da empresa">
                                 </div>
                             </div>
                             
@@ -247,6 +257,22 @@ document.getElementById('whatsapp').addEventListener('input', function() {
     maskWhatsApp(this);
 });
 
+// Aplicar máscara ao campo CNPJ
+document.getElementById('cnpjInput').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    
+    if (value.length <= 14) {
+        value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{1})$/, '$1.$2.$3/$4-$5');
+        value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/, '$1.$2.$3/$4');
+        value = value.replace(/^(\d{2})(\d{3})(\d{3})$/, '$1.$2.$3');
+        value = value.replace(/^(\d{2})(\d{3})$/, '$1.$2');
+        value = value.replace(/^(\d{2})$/, '$1');
+    }
+    
+    this.value = value;
+});
+
 // Validação de WhatsApp
 function validateWhatsApp(whatsapp) {
     const cleanWhatsApp = whatsapp.replace(/\D/g, '');
@@ -256,25 +282,87 @@ function validateWhatsApp(whatsapp) {
 document.getElementById('formDadosEmpresa').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const formData = new FormData(this);
-    const dadosEmpresa = {};
+    const cnpj = document.getElementById('cnpjInput').value;
+    const cnpjInput = document.getElementById('cnpjInput');
+    const submitBtn = this.querySelector('button[type="submit"]');
     
-    for (let [key, value] of formData.entries()) {
-        dadosEmpresa[key] = value;
-    }
-    
-    // Validar WhatsApp
-    if (!validateWhatsApp(dadosEmpresa.whatsapp)) {
-        alert('Por favor, insira um número de WhatsApp válido com pelo menos 10 dígitos.');
-        document.getElementById('whatsapp').focus();
+    // Validar CNPJ antes de continuar
+    if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) {
+        cnpjInput.classList.add('is-invalid');
+        document.getElementById('cnpjError').textContent = 'Por favor, informe um CNPJ válido com 14 dígitos.';
+        cnpjInput.focus();
         return;
     }
     
-    // Salvar dados no sessionStorage
-    sessionStorage.setItem('dadosEmpresa', JSON.stringify(dadosEmpresa));
+    // Mostrar loading no botão
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validando CNPJ...';
+    submitBtn.disabled = true;
     
-    // Redirecionar para o questionário
-    window.location.href = '/questionario';
+    // Validar CNPJ via API
+    fetch('/validar_cnpj', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cnpj: cnpj })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valid) {
+            // CNPJ válido - coletar dados do formulário
+            cnpjInput.classList.add('is-valid');
+            cnpjInput.classList.remove('is-invalid');
+            
+            const formData = new FormData(this);
+            const dadosEmpresa = {};
+            
+            for (let [key, value] of formData.entries()) {
+                dadosEmpresa[key] = value;
+            }
+            
+            // Validar WhatsApp
+            if (!validateWhatsApp(dadosEmpresa.whatsapp)) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                alert('Por favor, insira um número de WhatsApp válido com pelo menos 10 dígitos.');
+                document.getElementById('whatsapp').focus();
+                return;
+            }
+            
+            // Adicionar dados da API ReceitaWS
+            dadosEmpresa.dados_receita = data.dados_empresa;
+            dadosEmpresa.cnpj_validado = true;
+            
+            // Salvar dados no sessionStorage
+            sessionStorage.setItem('dadosEmpresa', JSON.stringify(dadosEmpresa));
+            
+            // Redirecionar para o questionário
+            window.location.href = '/questionario';
+            
+        } else {
+            // CNPJ inválido
+            cnpjInput.classList.add('is-invalid');
+            cnpjInput.classList.remove('is-valid');
+            document.getElementById('cnpjError').textContent = data.message || 'CNPJ não encontrado ou erro na consulta';
+            
+            // Restaurar botão
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            cnpjInput.focus();
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        cnpjInput.classList.add('is-invalid');
+        cnpjInput.classList.remove('is-valid');
+        document.getElementById('cnpjError').textContent = 'Erro ao validar CNPJ. Verifique sua conexão e tente novamente.';
+        
+        // Restaurar botão
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        cnpjInput.focus();
+    });
 });
 </script>
 {% endblock %}

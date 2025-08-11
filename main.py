@@ -120,6 +120,85 @@ def consultar_cnpj_receita_ws(cnpj):
     except Exception:
         return None
 
+def consultar_brasilapi(cnpj):
+    """Consulta CNPJ na BrasilAPI com tratamento adequado"""
+    try:
+        # Remove caracteres especiais do CNPJ
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+        
+        url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Verifica se tem dados essenciais
+            if not data.get('legal_name'):
+                return None
+            
+            # Converte para formato compatível com ReceitaWS
+            return {
+                'razao_social': data.get('legal_name', ''),
+                'nome_fantasia': data.get('trade_name', ''),
+                'cnpj': cnpj_limpo,
+                'situacao': data.get('registration_status', ''),
+                'atividade_principal': '',  # BrasilAPI tem estrutura diferente
+                'endereco': {
+                    'logradouro': data.get('address', {}).get('street', ''),
+                    'numero': data.get('address', {}).get('number', ''),
+                    'complemento': data.get('address', {}).get('details', ''),
+                    'bairro': data.get('address', {}).get('district', ''),
+                    'municipio': data.get('address', {}).get('city', ''),
+                    'uf': data.get('address', {}).get('state', ''),
+                    'cep': data.get('address', {}).get('zip_code', '')
+                },
+                'telefone': data.get('phone', ''),
+                'email': data.get('email', ''),
+                'data_abertura': data.get('founded', '')
+            }
+            
+        return None
+            
+    except Exception as e:
+        print(f"Erro na BrasilAPI: {e}")
+        return None
+
+def consultar_cnpj_com_fallback(cnpj):
+    """
+    Consulta CNPJ usando múltiplas APIs como fallback
+    1. Tenta BrasilAPI primeiro (mais rápida e sem limite rigoroso)
+    2. Se falhar, usa ReceitaWS
+    """
+    print(f"🔍 Consultando CNPJ: {cnpj}")
+    
+    # Primeira tentativa: BrasilAPI
+    print("📡 Tentativa 1: BrasilAPI...")
+    resultado = consultar_brasilapi(cnpj)
+    
+    if resultado and resultado.get('razao_social'):
+        print("✅ Sucesso com BrasilAPI!")
+        return resultado
+    else:
+        print("⚠️ BrasilAPI não retornou dados completos")
+    
+    # Segunda tentativa: ReceitaWS
+    print("📡 Tentativa 2: ReceitaWS...")
+    resultado = consultar_cnpj_receita_ws(cnpj)
+    
+    if resultado and resultado.get('razao_social'):
+        print("✅ Sucesso com ReceitaWS!")
+        return resultado
+    else:
+        print("⚠️ ReceitaWS não retornou dados completos")
+    
+    # Se ambas falharam
+    print("❌ Nenhuma API retornou dados válidos")
+    return None
+
 def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
     """Salva empresa e diagnóstico no Supabase"""
     print("🔍 Iniciando salvamento no Supabase...")
@@ -345,8 +424,8 @@ def validar_cnpj_route():
     if not validar_cnpj(cnpj):
         return jsonify({'valid': False, 'message': 'CNPJ inválido'})
     
-    # Consultar dados na ReceitaWS
-    dados_empresa = consultar_cnpj_receita_ws(cnpj)
+    # Consultar dados usando múltiplas APIs
+    dados_empresa = consultar_cnpj_com_fallback(cnpj)
     
     if not dados_empresa:
         return jsonify({'valid': False, 'message': 'CNPJ não encontrado ou erro na consulta'})
@@ -360,6 +439,7 @@ def validar_cnpj_route():
     return jsonify({
         'valid': True,
         'dados_empresa': dados_empresa,
+        'cnpj_validado': True,
         'message': 'CNPJ válido e empresa ativa'
     })
 

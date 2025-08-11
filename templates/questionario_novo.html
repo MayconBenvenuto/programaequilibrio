@@ -132,38 +132,16 @@ const totalPerguntas = {{ perguntas|length }};
 
 // Função para atualizar a barra de progresso
 function atualizarProgresso() {
-    try {
-        const totalPerguntas = {{ perguntas|length }} || 1; // Evitar divisão por zero
-        const porcentagem = Math.round(((perguntaAtual - 1) / totalPerguntas) * 100);
-        
-        console.log(`Progresso: pergunta ${perguntaAtual} de ${totalPerguntas} (${porcentagem}%)`);
-        
-        $('#progressBar').css('width', porcentagem + '%');
-        $('#etapaAtual').text(perguntaAtual);
-        $('#porcentagem').text(porcentagem);
-    } catch (error) {
-        console.error('Erro em atualizarProgresso:', error);
-    }
+    const porcentagem = Math.round(((perguntaAtual - 1) / totalPerguntas) * 100);
+    $('#progressBar').css('width', porcentagem + '%');
+    $('#etapaAtual').text(perguntaAtual);
+    $('#porcentagem').text(porcentagem);
 }
 
 // Função para mostrar pergunta específica
 function mostrarPergunta(numero) {
-    try {
-        console.log(`Mostrando pergunta ${numero}...`);
-        $('.pergunta-container').hide();
-        
-        const perguntaElement = $('.pergunta-container[data-pergunta="' + numero + '"]');
-        console.log(`Elemento da pergunta encontrado: ${perguntaElement.length > 0}`);
-        
-        if (perguntaElement.length > 0) {
-            perguntaElement.show();
-            console.log(`Pergunta ${numero} exibida com sucesso`);
-        } else {
-            console.error(`Pergunta ${numero} não encontrada!`);
-        }
-    } catch (error) {
-        console.error('Erro em mostrarPergunta:', error);
-    }
+    $('.pergunta-container').hide();
+    $('.pergunta-container[data-pergunta="' + numero + '"]').show();
 }
 
 // Função para próxima pergunta
@@ -260,52 +238,22 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const dadosCarregados = JSON.parse(dadosEmpresaStorage);
             
-            // DEBUG: Mostrar dados carregados
-            console.log('Dados do sessionStorage:', dadosCarregados);
-            console.log('cnpj_validado:', dadosCarregados.cnpj_validado);
-            console.log('dados_receita:', dadosCarregados.dados_receita);
-            
             // Verificar se CNPJ foi validado na página inicial
             if (dadosCarregados.cnpj_validado && dadosCarregados.dados_receita) {
                 // Usar dados da página inicial
                 dadosEmpresa = dadosCarregados;
                 
-                console.log('Dados do sessionStorage:', dadosCarregados);
-                console.log('cnpj_validado:', dadosCarregados.cnpj_validado);
-                console.log('dados_receita:', dadosCarregados.dados_receita);
-                
                 // Exibir dados da empresa na barra superior
-                let razaoSocial, cnpj;
+                const razaoSocial = dadosCarregados.dados_receita.razao_social || dadosCarregados.razao_social || 'Empresa';
+                const cnpj = formatarCNPJ(dadosCarregados.dados_receita.cnpj);
                 
-                try {
-                    razaoSocial = dadosCarregados.dados_receita.razao_social || dadosCarregados.razao_social || 'Empresa';
-                    cnpj = formatarCNPJ(dadosCarregados.dados_receita.cnpj);
-                    
-                    $('#nomeEmpresaDisplay').text(razaoSocial);
-                    $('#cnpjEmpresaDisplay').text(cnpj);
-                    
-                    console.log('Dados exibidos - Razão:', razaoSocial, 'CNPJ:', cnpj);
-                } catch (displayError) {
-                    console.error('Erro ao exibir dados da empresa:', displayError);
-                    $('#nomeEmpresaDisplay').text('Empresa');
-                    $('#cnpjEmpresaDisplay').text('---');
-                }
+                $('#nomeEmpresaDisplay').text(razaoSocial);
+                $('#cnpjEmpresaDisplay').text(cnpj);
                 
                 // Começar direto na primeira pergunta
-                try {
-                    console.log('Iniciando primeira pergunta...');
-                    perguntaAtual = 1;
-                    
-                    console.log('Chamando mostrarPergunta(1)...');
-                    mostrarPergunta(perguntaAtual);
-                    
-                    console.log('Chamando atualizarProgresso()...');
-                    atualizarProgresso();
-                    
-                    console.log('Questionário inicializado com sucesso!');
-                } catch (questionError) {
-                    console.error('Erro ao inicializar questionário:', questionError);
-                }
+                perguntaAtual = 1;
+                mostrarPergunta(perguntaAtual);
+                atualizarProgresso();
                 
                 console.log('Dados carregados da página inicial:', dadosEmpresa);
             } else {
