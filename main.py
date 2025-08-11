@@ -1,18 +1,73 @@
+import sys
+import os
 from flask import Flask, render_template, request, jsonify, send_file, url_for, redirect, session, flash
 import json
-import os
 import re
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.colors import HexColor
-from reportlab.lib.utils import ImageReader
-from reportlab.lib.units import inch
 import io
 import base64
 import requests
-from supabase import create_client, Client
-from decouple import config
+
+# Importações condicionais para evitar erros na Vercel
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.utils import ImageReader
+    from reportlab.lib.units import inch
+    PDF_GENERATION_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ [IMPORT] PDF generation não disponível: {e}")
+    PDF_GENERATION_AVAILABLE = False
+
+try:
+    from supabase import create_client, Client
+    SUPABASE_MODULE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ [IMPORT] Supabase module não disponível: {e}")
+    SUPABASE_MODULE_AVAILABLE = False
+
+try:
+    from decouple import config
+    CONFIG_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ [IMPORT] Decouple não disponível: {e}")
+    CONFIG_AVAILABLE = False
+    # Fallback para usar os.environ diretamente
+    def config(key, default=None, cast=None):
+        value = os.environ.get(key, default)
+        if cast and value is not None:
+            try:
+                return cast(value)
+            except (ValueError, TypeError):
+                return default
+        return value
+
+try:
+    from validate_docbr import CNPJ
+    import hashlib
+    import secrets
+    from functools import wraps
+    VALIDATION_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ [IMPORT] Validation libraries não disponíveis: {e}")
+    VALIDATION_AVAILABLE = False
+    # Definir validação básica de fallback
+    def validar_cnpj(cnpj):
+        if not cnpj:
+            return False
+        digits = re.sub(r'\D', '', cnpj)
+        return len(digits) == 14
+    
+    import hashlib
+    import secrets
+    from functools import wraps
+
+print(f"📋 [STARTUP] Status das dependências:")
+print(f"   PDF Generation: {PDF_GENERATION_AVAILABLE}")  
+print(f"   Supabase Module: {SUPABASE_MODULE_AVAILABLE}")
+print(f"   Config: {CONFIG_AVAILABLE}")
+print(f"   Validation: {VALIDATION_AVAILABLE}")
 from validate_docbr import CNPJ
 import hashlib
 import secrets
@@ -25,23 +80,33 @@ app.secret_key = config('FLASK_SECRET_KEY', default='dev-key-change-in-productio
 app.config['DEBUG'] = config('DEBUG', default=False, cast=bool)
 app.config['PERMANENT_SESSION_LIFETIME'] = config('PERMANENT_SESSION_LIFETIME', default=3600, cast=int)
 
-# Configurações de segurança
-app.config['SESSION_COOKIE_SECURE'] = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+# Configurações de segurança - ajustadas para funcionar em dev e produção
+import os
+is_production = os.environ.get('VERCEL') or os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = config('SESSION_COOKIE_SECURE', default=is_production, cast=bool)
 app.config['SESSION_COOKIE_HTTPONLY'] = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
 app.config['SESSION_COOKIE_SAMESITE'] = config('SESSION_COOKIE_SAMESITE', default='Lax')
 
 app.static_folder = 'static'
 app.template_folder = 'templates'
 
-# Configuração do Supabase
-SUPABASE_URL = config('SUPABASE_URL', default='')
-SUPABASE_KEY = config('SUPABASE_ANON_KEY', default=config('SUPABASE_KEY', default=''))
-
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-else:
+# Configuração do Supabase com tratamento robusto
+supabase = None
+try:
+    SUPABASE_URL = config('SUPABASE_URL', default='')
+    SUPABASE_KEY = config('SUPABASE_ANON_KEY', default=config('SUPABASE_KEY', default=''))
+    
+    if SUPABASE_URL and SUPABASE_KEY and SUPABASE_MODULE_AVAILABLE:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ [SUPABASE] Cliente configurado com sucesso")
+    else:
+        print("⚠️ [SUPABASE] Configurações incompletas ou módulo indisponível")
+        print(f"   URL presente: {bool(SUPABASE_URL)}")
+        print(f"   KEY presente: {bool(SUPABASE_KEY)}")
+        print(f"   Módulo disponível: {SUPABASE_MODULE_AVAILABLE}")
+except Exception as e:
+    print(f"❌ [SUPABASE] Erro na inicialização: {str(e)}")
     supabase = None
-    print("⚠️  Configurações do Supabase não encontradas. Funcionalidades de banco de dados estarão limitadas.")
 
 # Validador de CNPJ
 cnpj_validator = CNPJ()
@@ -656,19 +721,48 @@ def resultado():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
         
+        print(f"🔍 [ADMIN] Tentativa de login - usuário: '{username}', senha: {'*' * len(password)}")
+        print(f"🔍 [ADMIN] Supabase disponível: {supabase is not None}")
+        
+        # Sistema de fallback para quando Supabase não está disponível
         if not supabase:
-            flash('Sistema de administração indisponível', 'error')
-            return render_template('admin/login.html')
+            print("⚠️ [ADMIN] Supabase indisponível - usando autenticação local")
+            
+            # Verificar credenciais padrão (fallback)
+            if ((username == 'admin' and password == 'admin123') or 
+                (username == ADMIN_EMAIL and password == ADMIN_PASSWORD)):
+                
+                print(f"✅ [ADMIN] Login bem-sucedido (fallback) - usuário: {username}")
+                
+                session['admin_user'] = {
+                    'id': 'admin-local',
+                    'username': username,
+                    'email': username if '@' in username else ADMIN_EMAIL,
+                    'role': 'super_admin',
+                    'auth_method': 'fallback'
+                }
+                
+                print(f"💾 [ADMIN] Sessão criada: {session.get('admin_user')}")
+                flash('Login realizado com sucesso! (Modo local)', 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                print(f"❌ [ADMIN] Credenciais inválidas (fallback) - usuário: {username}")
+                flash('Credenciais inválidas. Use: admin/admin123 ou as configuradas nas variáveis de ambiente.', 'error')
+                return render_template('admin/login.html')
         
+        # Lógica original com Supabase
         try:
+            print(f"🔍 [ADMIN] Tentando login com Supabase - usuário: {username}")
+            
             # Buscar usuário no banco
             user_result = supabase.table('admin_users').select('*').eq('username', username).eq('is_active', True).execute()
             
             if user_result.data:
                 user = user_result.data[0]
+                print(f"👤 [ADMIN] Usuário encontrado no banco: {user['username']}")
                 
                 # Verificar senha (em produção, use hash seguro)
                 password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -679,7 +773,8 @@ def admin_login():
                         'id': user['id'],
                         'username': user['username'],
                         'email': user['email'],
-                        'role': user['role']
+                        'role': user['role'],
+                        'auth_method': 'supabase'
                     }
                     
                     # Atualizar último login
@@ -687,24 +782,45 @@ def admin_login():
                         'last_login': datetime.now().isoformat()
                     }).eq('id', user['id']).execute()
                     
+                    print(f"✅ [ADMIN] Login bem-sucedido (Supabase) - usuário: {username}")
+                    print(f"💾 [ADMIN] Sessão criada: {session.get('admin_user')}")
                     flash('Login realizado com sucesso!', 'success')
                     return redirect(url_for('admin_dashboard'))
                 else:
+                    print(f"❌ [ADMIN] Senha incorreta para usuário: {username}")
                     flash('Credenciais inválidas', 'error')
             else:
+                print(f"❌ [ADMIN] Usuário não encontrado no banco: {username}")
                 flash('Usuário não encontrado', 'error')
                 
         except Exception as e:
+            print(f"❌ [ADMIN] Erro no sistema de autenticação: {e}")
             flash('Erro no sistema de autenticação', 'error')
-            print(f"Erro no login: {e}")
+    else:
+        print("📄 [ADMIN] Exibindo página de login")
     
     return render_template('admin/login.html')
 
 @app.route('/admin/logout')
 def admin_logout():
+    print(f"🚪 [ADMIN] Logout - usuário: {session.get('admin_user', {}).get('username', 'N/A')}")
     session.pop('admin_user', None)
     flash('Logout realizado com sucesso', 'success')
     return redirect(url_for('admin_login'))
+
+# Rota de debug temporária para verificar sessão
+@app.route('/admin/debug')
+def admin_debug():
+    debug_info = {
+        'session_data': dict(session),
+        'has_admin_user': 'admin_user' in session,
+        'session_cookie_secure': app.config.get('SESSION_COOKIE_SECURE'),
+        'session_cookie_httponly': app.config.get('SESSION_COOKIE_HTTPONLY'),
+        'session_cookie_samesite': app.config.get('SESSION_COOKIE_SAMESITE'),
+        'is_production': os.environ.get('VERCEL') or os.environ.get('FLASK_ENV') == 'production',
+        'flask_secret_key_set': bool(app.secret_key),
+    }
+    return jsonify(debug_info)
 
 @app.route('/admin')
 @app.route('/admin/dashboard')

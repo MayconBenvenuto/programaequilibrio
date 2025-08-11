@@ -1,14 +1,10 @@
-Flask==2.3.3
-reportlab==4.0.4
-Pillow==10.0.1
-Werkzeug==2.3.7
-Jinja2==3.1.2
-MarkupSafe==2.1.3
-itsdangerous==2.1.2
-click==8.1.7
-blinker==1.6.3
-supabase==2.3.1
-python-decouple==3.8
-python-dotenv==1.0.0
-requests==2.31.0
-validate-docbr==1.10.0
+# Dependências essenciais
+Flask>=2.3.0,<3.0.0
+python-decouple>=3.8
+requests>=2.31.0
+validate-docbr>=1.10.0
+
+# Dependências opcionais - o app funciona sem elas
+reportlab>=4.0.0,<5.0.0
+Pillow>=10.0.0,<11.0.0
+supabase>=2.3.0,<3.0.0
