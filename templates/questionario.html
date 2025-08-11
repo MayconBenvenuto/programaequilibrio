@@ -122,7 +122,32 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+<!-- jQuery primeiro -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+<!-- Fallback para jQuery se CDN falhar -->
+<script>
+if (!window.jQuery) {
+    console.warn('jQuery CDN falhou, carregando fallback...');
+    document.write('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"><\/script>');
+}
+</script>
+
+<!-- jQuery Mask depois do jQuery -->
+<script>
+// Verificar se jQuery está disponível antes de carregar mask
+if (window.jQuery) {
+    // Carregar jQuery Mask
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js';
+    script.onerror = function() {
+        console.warn('jQuery Mask CDN falhou');
+    };
+    document.head.appendChild(script);
+} else {
+    console.warn('jQuery não disponível, pulando jQuery Mask');
+}
+</script>
 <script>
 // Variáveis globais
 let dadosEmpresa = {};
@@ -138,9 +163,21 @@ function atualizarProgresso() {
         
         console.log(`Progresso: pergunta ${perguntaAtual} de ${totalPerguntasLocal} (${porcentagem}%)`);
         
-        $('#progressBar').css('width', porcentagem + '%');
-        $('#etapaAtual').text(perguntaAtual);
-        $('#porcentagem').text(porcentagem);
+        // Usar jQuery se disponível, senão usar JavaScript vanilla
+        if (window.jQuery && window.$) {
+            $('#progressBar').css('width', porcentagem + '%');
+            $('#etapaAtual').text(perguntaAtual);
+            $('#porcentagem').text(porcentagem);
+        } else {
+            // Fallback para JavaScript vanilla
+            const progressBar = document.getElementById('progressBar');
+            const etapaAtual = document.getElementById('etapaAtual');
+            const porcentagemEl = document.getElementById('porcentagem');
+            
+            if (progressBar) progressBar.style.width = porcentagem + '%';
+            if (etapaAtual) etapaAtual.textContent = perguntaAtual;
+            if (porcentagemEl) porcentagemEl.textContent = porcentagem;
+        }
     } catch (error) {
         console.error('Erro em atualizarProgresso:', error);
     }
@@ -150,16 +187,36 @@ function atualizarProgresso() {
 function mostrarPergunta(numero) {
     try {
         console.log(`Mostrando pergunta ${numero}...`);
-        $('.pergunta-container').hide();
         
-        const perguntaElement = $('.pergunta-container[data-pergunta="' + numero + '"]');
-        console.log(`Elemento da pergunta encontrado: ${perguntaElement.length > 0}`);
-        
-        if (perguntaElement.length > 0) {
-            perguntaElement.show();
-            console.log(`Pergunta ${numero} exibida com sucesso`);
+        // Usar jQuery se disponível, senão usar JavaScript vanilla
+        if (window.jQuery && window.$) {
+            $('.pergunta-container').hide();
+            
+            const perguntaElement = $('.pergunta-container[data-pergunta="' + numero + '"]');
+            console.log(`Elemento da pergunta encontrado: ${perguntaElement.length > 0}`);
+            
+            if (perguntaElement.length > 0) {
+                perguntaElement.show();
+                console.log(`Pergunta ${numero} exibida com sucesso`);
+            } else {
+                console.error(`Pergunta ${numero} não encontrada!`);
+            }
         } else {
-            console.error(`Pergunta ${numero} não encontrada!`);
+            // Fallback para JavaScript vanilla
+            const perguntaContainers = document.querySelectorAll('.pergunta-container');
+            perguntaContainers.forEach(container => {
+                container.style.display = 'none';
+            });
+            
+            const perguntaElement = document.querySelector('.pergunta-container[data-pergunta="' + numero + '"]');
+            console.log(`Elemento da pergunta encontrado: ${perguntaElement !== null}`);
+            
+            if (perguntaElement) {
+                perguntaElement.style.display = 'block';
+                console.log(`Pergunta ${numero} exibida com sucesso`);
+            } else {
+                console.error(`Pergunta ${numero} não encontrada!`);
+            }
         }
     } catch (error) {
         console.error('Erro em mostrarPergunta:', error);
@@ -172,8 +229,12 @@ function proximaPergunta() {
         perguntaAtual++;
         mostrarPergunta(perguntaAtual);
         atualizarProgresso();
-        // Scroll para o topo
-        $('html, body').animate({ scrollTop: 0 }, 500);
+        // Scroll para o topo - funciona com ou sem jQuery
+        if (window.jQuery && window.$) {
+            $('html, body').animate({ scrollTop: 0 }, 500);
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     } else {
         finalizarQuestionario();
     }
@@ -185,35 +246,76 @@ function perguntaAnterior() {
         perguntaAtual--;
         mostrarPergunta(perguntaAtual);
         atualizarProgresso();
-        // Scroll para o topo
-        $('html, body').animate({ scrollTop: 0 }, 500);
+        // Scroll para o topo - funciona com ou sem jQuery
+        if (window.jQuery && window.$) {
+            $('html, body').animate({ scrollTop: 0 }, 500);
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }
 }
 
 // Função para verificar se pergunta foi respondida
 function verificarResposta() {
-    const opcaoSelecionada = $('input[name="pergunta_' + perguntaAtual + '"]:checked');
-    const botaoProximo = $('.pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-success');
-    
-    if (opcaoSelecionada.length > 0) {
-        respostas[perguntaAtual] = opcaoSelecionada.val();
-        botaoProximo.prop('disabled', false);
-    } else {
-        botaoProximo.prop('disabled', true);
+    try {
+        let opcaoSelecionada, botaoProximo;
+        
+        if (window.jQuery && window.$) {
+            // Usar jQuery se disponível
+            opcaoSelecionada = $('input[name="pergunta_' + perguntaAtual + '"]:checked');
+            botaoProximo = $('.pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-success');
+            
+            if (opcaoSelecionada.length > 0) {
+                respostas[perguntaAtual] = opcaoSelecionada.val();
+                botaoProximo.prop('disabled', false);
+            } else {
+                botaoProximo.prop('disabled', true);
+            }
+        } else {
+            // Usar JavaScript vanilla
+            opcaoSelecionada = document.querySelector('input[name="pergunta_' + perguntaAtual + '"]:checked');
+            botaoProximo = document.querySelector('.pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-success');
+            
+            if (opcaoSelecionada) {
+                respostas[perguntaAtual] = opcaoSelecionada.value;
+                if (botaoProximo) botaoProximo.disabled = false;
+            } else {
+                if (botaoProximo) botaoProximo.disabled = true;
+            }
+        }
+    } catch (error) {
+        console.error('Erro em verificarResposta:', error);
     }
 }
 
 // Função para formatar CNPJ
 function formatarCNPJ(cnpj) {
-    const digits = cnpj.replace(/\D/g, '');
+    if (!cnpj) {
+        return '---';
+    }
+    
+    // Garantir que cnpj é uma string
+    const cnpjStr = String(cnpj);
+    const digits = cnpjStr.replace(/\D/g, '');
+    
+    // Verificar se tem 14 dígitos (formato válido de CNPJ)
+    if (digits.length !== 14) {
+        return cnpj; // Retornar como recebido se não for válido
+    }
+    
     return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
 
 function finalizarQuestionario() {
     const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
     
-    $('#loadingText').text('Processando diagnóstico...');
-    $('#loadingSubText').text('Analisando as respostas e gerando recomendações personalizadas.');
+    // Atualizar textos do modal
+    const loadingText = document.getElementById('loadingText');
+    const loadingSubText = document.getElementById('loadingSubText');
+    
+    if (loadingText) loadingText.textContent = 'Processando diagnóstico...';
+    if (loadingSubText) loadingSubText.textContent = 'Analisando as respostas e gerando recomendações personalizadas.';
+    
     loadingModal.show();
     
     const dadosCompletos = {
@@ -221,34 +323,61 @@ function finalizarQuestionario() {
         respostas: respostas
     };
     
-    $.ajax({
-        url: '/processar_questionario',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(dadosCompletos),
-        success: function(response) {
+    // Usar jQuery se disponível, senão usar fetch API
+    if (window.jQuery && window.$) {
+        $.ajax({
+            url: '/processar_questionario',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(dadosCompletos),
+            success: function(response) {
+                loadingModal.hide();
+                
+                if (response.status === 'success') {
+                    window.location.href = response.redirect;
+                } else {
+                    alert('Erro: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                loadingModal.hide();
+                
+                let errorMessage = 'Erro ao processar questionário.';
+                try {
+                    const errorData = JSON.parse(xhr.responseText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    // Usar mensagem padrão
+                }
+                
+                alert(errorMessage + ' Por favor, tente novamente.');
+            }
+        });
+    } else {
+        // Fallback usando fetch API
+        fetch('/processar_questionario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosCompletos)
+        })
+        .then(response => response.json())
+        .then(data => {
             loadingModal.hide();
             
-            if (response.status === 'success') {
-                window.location.href = response.redirect;
+            if (data.status === 'success') {
+                window.location.href = data.redirect;
             } else {
-                alert('Erro: ' + response.message);
+                alert('Erro: ' + data.message);
             }
-        },
-        error: function(xhr, status, error) {
+        })
+        .catch(error => {
             loadingModal.hide();
-            
-            let errorMessage = 'Erro ao processar questionário.';
-            try {
-                const errorData = JSON.parse(xhr.responseText);
-                errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-                // Usar mensagem padrão
-            }
-            
-            alert(errorMessage + ' Por favor, tente novamente.');
-        }
-    });
+            console.error('Erro ao processar questionário:', error);
+            alert('Erro ao processar questionário. Por favor, tente novamente.');
+        });
+    }
 }
 
 // Event listeners para as opções
@@ -291,29 +420,92 @@ document.addEventListener('DOMContentLoaded', function() {
                 let cnpj = '---';
                 
                 try {
+                    console.log('🔍 [DEBUG] Iniciando exibição de dados da empresa...');
+                    console.log('🔍 [DEBUG] dadosCarregados:', dadosCarregados);
+                    console.log('🔍 [DEBUG] dadosCarregados.dados_receita:', dadosCarregados.dados_receita);
+                    
                     // Tentar pegar dados da receita primeiro, depois dados básicos
-                    if (dadosCarregados.dados_receita) {
+                    if (dadosCarregados.dados_receita && typeof dadosCarregados.dados_receita === 'object') {
+                        console.log('📋 [DEBUG] Usando dados da receita...');
                         razaoSocial = dadosCarregados.dados_receita.razao_social || 
                                     dadosCarregados.dados_receita.nome || 
                                     dadosCarregados.razao_social || 
                                     dadosCarregados.nome_empresa || 
                                     'Empresa';
-                        cnpj = formatarCNPJ(dadosCarregados.dados_receita.cnpj || dadosCarregados.cnpj);
+                        
+                        const cnpjReceita = dadosCarregados.dados_receita.cnpj || dadosCarregados.cnpj;
+                        cnpj = formatarCNPJ(cnpjReceita);
+                        console.log('📋 [DEBUG] CNPJ da receita:', cnpjReceita, '-> formatado:', cnpj);
                     } else {
+                        console.log('📋 [DEBUG] Usando dados básicos...');
                         razaoSocial = dadosCarregados.razao_social || 
                                     dadosCarregados.nome_empresa || 
                                     'Empresa';
                         cnpj = formatarCNPJ(dadosCarregados.cnpj);
+                        console.log('📋 [DEBUG] CNPJ básico:', dadosCarregados.cnpj, '-> formatado:', cnpj);
                     }
                     
-                    $('#nomeEmpresaDisplay').text(razaoSocial);
-                    $('#cnpjEmpresaDisplay').text(cnpj);
+                    console.log('📋 [DEBUG] Valores finais - Razão:', razaoSocial, 'CNPJ:', cnpj);
                     
-                    console.log('Dados exibidos - Razão:', razaoSocial, 'CNPJ:', cnpj);
+                    // Atualizar elementos da interface
+                    if (window.jQuery && window.$) {
+                        // Usar jQuery se disponível
+                        const nomeElement = $('#nomeEmpresaDisplay');
+                        const cnpjElement = $('#cnpjEmpresaDisplay');
+                        
+                        if (nomeElement.length) {
+                            nomeElement.text(razaoSocial);
+                            console.log('✅ [DEBUG] Nome da empresa atualizado (jQuery)');
+                        } else {
+                            console.warn('⚠️ [DEBUG] Elemento #nomeEmpresaDisplay não encontrado');
+                        }
+                        
+                        if (cnpjElement.length) {
+                            cnpjElement.text(cnpj);
+                            console.log('✅ [DEBUG] CNPJ atualizado (jQuery)');
+                        } else {
+                            console.warn('⚠️ [DEBUG] Elemento #cnpjEmpresaDisplay não encontrado');
+                        }
+                    } else {
+                        // Usar JavaScript vanilla
+                        const nomeElement = document.getElementById('nomeEmpresaDisplay');
+                        const cnpjElement = document.getElementById('cnpjEmpresaDisplay');
+                        
+                        if (nomeElement) {
+                            nomeElement.textContent = razaoSocial;
+                            console.log('✅ [DEBUG] Nome da empresa atualizado (vanilla JS)');
+                        } else {
+                            console.warn('⚠️ [DEBUG] Elemento #nomeEmpresaDisplay não encontrado');
+                        }
+                        
+                        if (cnpjElement) {
+                            cnpjElement.textContent = cnpj;
+                            console.log('✅ [DEBUG] CNPJ atualizado (vanilla JS)');
+                        } else {
+                            console.warn('⚠️ [DEBUG] Elemento #cnpjEmpresaDisplay não encontrado');
+                        }
+                    }
+                    
+                    console.log('✅ [DEBUG] Dados exibidos com sucesso');
                 } catch (displayError) {
-                    console.error('Erro ao exibir dados da empresa:', displayError);
-                    $('#nomeEmpresaDisplay').text('Empresa');
-                    $('#cnpjEmpresaDisplay').text(cnpj || '---');
+                    console.error('❌ [QUESTIONARIO] Erro ao exibir dados da empresa:', displayError);
+                    console.error('❌ [QUESTIONARIO] Stack trace:', displayError.stack);
+                    console.log('📋 [QUESTIONARIO] Dados que causaram erro:', dadosCarregados);
+                    
+                    // Fallback seguro
+                    try {
+                        if (window.jQuery && window.$) {
+                            $('#nomeEmpresaDisplay').text('Empresa');
+                            $('#cnpjEmpresaDisplay').text('---');
+                        } else {
+                            const nomeEl = document.getElementById('nomeEmpresaDisplay');
+                            const cnpjEl = document.getElementById('cnpjEmpresaDisplay');
+                            if (nomeEl) nomeEl.textContent = 'Empresa';
+                            if (cnpjEl) cnpjEl.textContent = '---';
+                        }
+                    } catch (fallbackError) {
+                        console.error('❌ [QUESTIONARIO] Erro no fallback:', fallbackError);
+                    }
                 }
                 
                 // Começar direto na primeira pergunta
@@ -366,21 +558,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Adicionar listeners para todas as opções de pergunta
-    $(document).on('change', 'input[type="radio"]', function() {
-        verificarResposta();
-        
-        // Melhorar visual das opções selecionadas
-        const perguntaContainer = $(this).closest('.pergunta-container');
-        perguntaContainer.find('.opcao-item label').removeClass('btn-primary').addClass('btn-outline-primary');
-        perguntaContainer.find('.fas.fa-circle-check').addClass('d-none');
-        perguntaContainer.find('.fas.fa-circle').removeClass('d-none');
-        
-        // Destacar opção selecionada
-        const labelSelecionado = $(this).next('label');
-        labelSelecionado.removeClass('btn-outline-primary').addClass('btn-primary');
-        labelSelecionado.find('.fas.fa-circle').addClass('d-none');
-        labelSelecionado.find('.fas.fa-circle-check').removeClass('d-none');
-    });
+    function setupEventListeners() {
+        if (window.jQuery && window.$) {
+            // Usar jQuery se disponível
+            $(document).on('change', 'input[type="radio"]', function() {
+                verificarResposta();
+                
+                // Melhorar visual das opções selecionadas
+                const perguntaContainer = $(this).closest('.pergunta-container');
+                perguntaContainer.find('.opcao-item label').removeClass('btn-primary').addClass('btn-outline-primary');
+                perguntaContainer.find('.fas.fa-circle-check').addClass('d-none');
+                perguntaContainer.find('.fas.fa-circle').removeClass('d-none');
+                
+                // Destacar opção selecionada
+                const labelSelecionado = $(this).next('label');
+                labelSelecionado.removeClass('btn-outline-primary').addClass('btn-primary');
+                labelSelecionado.find('.fas.fa-circle').addClass('d-none');
+                labelSelecionado.find('.fas.fa-circle-check').removeClass('d-none');
+            });
+        } else {
+            // Usar JavaScript vanilla
+            document.addEventListener('change', function(e) {
+                if (e.target.type === 'radio') {
+                    verificarResposta();
+                    
+                    // Melhorar visual das opções selecionadas
+                    const perguntaContainer = e.target.closest('.pergunta-container');
+                    if (perguntaContainer) {
+                        const labels = perguntaContainer.querySelectorAll('.opcao-item label');
+                        labels.forEach(label => {
+                            label.classList.remove('btn-primary');
+                            label.classList.add('btn-outline-primary');
+                            
+                            const checkIcon = label.querySelector('.fas.fa-circle-check');
+                            const circleIcon = label.querySelector('.fas.fa-circle');
+                            if (checkIcon) checkIcon.classList.add('d-none');
+                            if (circleIcon) circleIcon.classList.remove('d-none');
+                        });
+                        
+                        // Destacar opção selecionada
+                        const labelSelecionado = e.target.nextElementSibling;
+                        if (labelSelecionado) {
+                            labelSelecionado.classList.remove('btn-outline-primary');
+                            labelSelecionado.classList.add('btn-primary');
+                            
+                            const checkIcon = labelSelecionado.querySelector('.fas.fa-circle-check');
+                            const circleIcon = labelSelecionado.querySelector('.fas.fa-circle');
+                            if (checkIcon) checkIcon.classList.remove('d-none');
+                            if (circleIcon) circleIcon.classList.add('d-none');
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Configurar event listeners
+    setupEventListeners();
 });
 </script>
 {% endblock %}
