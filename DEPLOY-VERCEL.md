@@ -1,13 +1,51 @@
-# 🚀 Deploy na Vercel - Guia Rápido
+# 🚀 GUIA DE DEPLOY VERCEL - PROGRAMA EQUILÍBRIO
 
-## Pré-requisitos
-- Conta no GitHub (gratuita)
-- Conta na Vercel (gratuita)
-- Node.js instalado (para CLI - opcional)
+## 📋 PRÉ-REQUISITOS
 
-## Método 1: Deploy via GitHub (Recomendado - Mais Fácil)
+### 1. Conta e CLI do Vercel
+```bash
+# Instalar Vercel CLI
+npm i -g vercel
 
-### 1. Criar repositório no GitHub
+# Fazer login  
+vercel login
+```
+
+### 2. Verificar Arquivos Necessários
+- ✅ `vercel.json` - Configuração do Vercel (ATUALIZADO)
+- ✅ `requirements.txt` - Dependências Python  
+- ✅ `api/index.py` - Ponto de entrada para Vercel (ATUALIZADO)
+- ✅ `main.py` - Aplicação principal com melhorias
+- ✅ `.vercelignore` - Arquivos a ignorar no deploy (NOVO)
+
+## 🔧 CONFIGURAÇÃO DAS VARIÁVEIS DE AMBIENTE
+
+### 1. Via Dashboard (Recomendado)
+1. Acesse: https://vercel.com/dashboard
+2. Selecione seu projeto
+3. Vá em: **Settings > Environment Variables**
+4. Configure as variáveis obrigatórias:
+
+#### Variáveis Obrigatórias:
+```
+SUPABASE_URL = sua_url_supabase
+SUPABASE_ANON_KEY = sua_chave_supabase  
+FLASK_SECRET_KEY = sua_chave_secreta_32_chars_minimo
+```
+
+#### Variáveis Opcionais (com valores padrão):
+```
+DEBUG = False
+ENVIRONMENT = production
+RECEITAWS_TIMEOUT = 15
+BRASILAPI_TIMEOUT = 15
+```
+
+## 🚀 PROCESSO DE DEPLOY
+
+### Método 1: Deploy via GitHub (Recomendado)
+
+#### 1. Preparar Repositório
 ```bash
 git init
 git add .

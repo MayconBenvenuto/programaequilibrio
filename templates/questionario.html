@@ -128,15 +128,15 @@
 let dadosEmpresa = {};
 let respostas = {};
 let perguntaAtual = 1;
-const totalPerguntas = {{ perguntas|length }};
+const totalPerguntas = parseInt('{{ perguntas|length }}');
 
 // Função para atualizar a barra de progresso
 function atualizarProgresso() {
     try {
-        const totalPerguntas = {{ perguntas|length }} || 1; // Evitar divisão por zero
-        const porcentagem = Math.round(((perguntaAtual - 1) / totalPerguntas) * 100);
+        const totalPerguntasLocal = parseInt('{{ perguntas|length }}') || 1; // Evitar divisão por zero
+        const porcentagem = Math.round(((perguntaAtual - 1) / totalPerguntasLocal) * 100);
         
-        console.log(`Progresso: pergunta ${perguntaAtual} de ${totalPerguntas} (${porcentagem}%)`);
+        console.log(`Progresso: pergunta ${perguntaAtual} de ${totalPerguntasLocal} (${porcentagem}%)`);
         
         $('#progressBar').css('width', porcentagem + '%');
         $('#etapaAtual').text(perguntaAtual);

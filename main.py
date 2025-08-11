@@ -82,18 +82,28 @@ def consultar_cnpj_receita_ws(cnpj):
     try:
         # Remove formatação do CNPJ
         cnpj_limpo = re.sub(r'[^\d]', '', cnpj)
+        print(f"🔍 [ReceitaWS] Consultando CNPJ: {cnpj_limpo}")
         
         # Faz a requisição para a API usando timeout configurado
         response = requests.get(f"{RECEITAWS_API_URL}{cnpj_limpo}", timeout=RECEITAWS_TIMEOUT)
+        print(f"📡 [ReceitaWS] Status HTTP: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
+            print(f"📋 [ReceitaWS] Dados brutos recebidos:")
+            print(f"   Status API: {data.get('status', 'N/A')}")
+            print(f"   Nome: {data.get('nome', 'N/A')}")
+            print(f"   Fantasia: {data.get('fantasia', 'N/A')}")
+            print(f"   Situação: {data.get('situacao', 'N/A')}")
+            print(f"   Município: {data.get('municipio', 'N/A')}")
+            print(f"   UF: {data.get('uf', 'N/A')}")
             
             # Verifica se houve erro na consulta
             if data.get('status') == 'ERROR':
+                print(f"❌ [ReceitaWS] API retornou erro: {data.get('message', 'Erro não especificado')}")
                 return None
             
-            return {
+            resultado = {
                 'razao_social': data.get('nome', ''),
                 'nome_fantasia': data.get('fantasia', ''),
                 'cnpj': cnpj_limpo,
@@ -112,10 +122,19 @@ def consultar_cnpj_receita_ws(cnpj):
                 'email': data.get('email', ''),
                 'data_abertura': data.get('abertura', '')
             }
+            
+            print(f"✅ [ReceitaWS] Dados processados:")
+            print(f"   Razão Social: '{resultado.get('razao_social')}'")
+            print(f"   Situação: '{resultado.get('situacao')}'")
+            print(f"   Tem razão social: {bool(resultado.get('razao_social'))}")
+            
+            return resultado
         else:
+            print(f"❌ [ReceitaWS] Erro HTTP {response.status_code}: {response.text[:200]}")
             return None
             
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"❌ [ReceitaWS] Erro de requisição: {e}")
         return None
     except Exception:
         return None
@@ -173,17 +192,39 @@ def consultar_cnpj_com_fallback(cnpj):
     1. Tenta BrasilAPI primeiro (mais rápida e sem limite rigoroso)
     2. Se falhar, usa ReceitaWS
     """
-    print(f"🔍 Consultando CNPJ: {cnpj}")
+    print(f"🔍 [FALLBACK] Consultando CNPJ: {cnpj}")
     
     # Primeira tentativa: BrasilAPI
-    print("📡 Tentativa 1: BrasilAPI...")
+    print("📡 [FALLBACK] Tentativa 1: BrasilAPI...")
     resultado = consultar_brasilapi(cnpj)
     
     if resultado and resultado.get('razao_social'):
-        print("✅ Sucesso com BrasilAPI!")
+        print(f"✅ [FALLBACK] Sucesso com BrasilAPI!")
+        print(f"   Razão Social encontrada: '{resultado.get('razao_social')}'")
         return resultado
     else:
-        print("⚠️ BrasilAPI não retornou dados completos")
+        print("⚠️ [FALLBACK] BrasilAPI não retornou dados completos")
+        if resultado:
+            print(f"   Dados BrasilAPI: razao_social='{resultado.get('razao_social')}', situacao='{resultado.get('situacao')}'")
+    
+    # Segunda tentativa: ReceitaWS
+    print("📡 [FALLBACK] Tentativa 2: ReceitaWS...")
+    resultado = consultar_cnpj_receita_ws(cnpj)
+    
+    if resultado and resultado.get('razao_social'):
+        print(f"✅ [FALLBACK] Sucesso com ReceitaWS!")
+        print(f"   Razão Social encontrada: '{resultado.get('razao_social')}'")
+        return resultado
+    else:
+        print("⚠️ [FALLBACK] ReceitaWS não retornou dados completos")
+        if resultado:
+            print(f"   Dados ReceitaWS: razao_social='{resultado.get('razao_social')}', situacao='{resultado.get('situacao')}'")
+    
+    # Se ambas falharam
+    print("❌ [FALLBACK] Nenhuma API retornou dados válidos")
+    print(f"   BrasilAPI resultado: {type(resultado)}")
+    print(f"   ReceitaWS resultado: {type(resultado)}")
+    return None
     
     # Segunda tentativa: ReceitaWS
     print("📡 Tentativa 2: ReceitaWS...")
@@ -417,31 +458,61 @@ def validar_cnpj_route():
     data = request.get_json()
     cnpj = data.get('cnpj', '').strip()
     
+    print(f"\n🔍 [ROUTE] /validar_cnpj chamada")
+    print(f"   CNPJ recebido: '{cnpj}'")
+    
     if not cnpj:
+        print(f"❌ [ROUTE] CNPJ vazio")
         return jsonify({'valid': False, 'message': 'CNPJ é obrigatório'})
     
     # Validar formato do CNPJ
-    if not validar_cnpj(cnpj):
+    formato_valido = validar_cnpj(cnpj)
+    print(f"📋 [ROUTE] Formato válido: {formato_valido}")
+    
+    if not formato_valido:
+        print(f"❌ [ROUTE] CNPJ com formato inválido")
         return jsonify({'valid': False, 'message': 'CNPJ inválido'})
     
     # Consultar dados usando múltiplas APIs
+    print(f"🔍 [ROUTE] Iniciando consulta de dados...")
     dados_empresa = consultar_cnpj_com_fallback(cnpj)
     
+    print(f"📊 [ROUTE] Resultado da consulta:")
+    print(f"   Dados encontrados: {dados_empresa is not None}")
+    
+    if dados_empresa:
+        print(f"   Razão Social: '{dados_empresa.get('razao_social')}'")
+        print(f"   Situação: '{dados_empresa.get('situacao')}'")
+        print(f"   CNPJ: '{dados_empresa.get('cnpj')}'")
+        print(f"   Município: '{dados_empresa.get('endereco', {}).get('municipio')}'")
+    
     if not dados_empresa:
+        print(f"❌ [ROUTE] Nenhum dado encontrado")
         return jsonify({'valid': False, 'message': 'CNPJ não encontrado ou erro na consulta'})
     
-    if dados_empresa.get('situacao') != 'ATIVA':
+    situacao = dados_empresa.get('situacao', '').upper()
+    print(f"📋 [ROUTE] Verificando situação: '{situacao}'")
+    
+    if situacao != 'ATIVA':
+        print(f"⚠️ [ROUTE] Empresa não ativa: {situacao}")
         return jsonify({
             'valid': False, 
             'message': f'Empresa com situação: {dados_empresa.get("situacao", "INATIVA")}. Apenas empresas ativas podem realizar o diagnóstico.'
         })
     
-    return jsonify({
+    resposta = {
         'valid': True,
         'dados_empresa': dados_empresa,
         'cnpj_validado': True,
         'message': 'CNPJ válido e empresa ativa'
-    })
+    }
+    
+    print(f"✅ [ROUTE] Sucesso! Retornando dados:")
+    print(f"   valid: {resposta['valid']}")
+    print(f"   cnpj_validado: {resposta['cnpj_validado']}")
+    print(f"   dados_empresa keys: {list(resposta['dados_empresa'].keys())}")
+    
+    return jsonify(resposta)
 
 @app.route('/')
 def index():

@@ -1,0 +1,55 @@
+# Arquivos de desenvolvimento
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.venv/
+venv/
+ENV/
+
+# Arquivos de teste
+test_*.py
+teste_*.py
+debug_*.py
+*_test.py
+app_test.py
+
+# Documentação e logs
+*.md
+*.log
+*.txt
+!requirements.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker (não usado no Vercel)
+Dockerfile
+docker-compose.yml
+*.dockerfile
+
+# Scripts específicos
+deploy.sh
+configure_*.sh
+configure_*.ps1
+
+# Pasta de testes
+TESTES/
+
+# Arquivos temporários
+temp_*
+*_temp.json
