@@ -4,9 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Programa Equilíbrio - Belz Conecta Saúde{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap CSS com fallback -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    
+    <!-- Font Awesome com fallback -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" 
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
+    
+    <!-- CSS customizado -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <!-- Meta tags para SEO e performance -->
+    <meta name="description" content="Programa Equilíbrio - Diagnóstico Corporativo de Saúde Mental e Ergonomia">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Belz Conecta Saúde">
 </head>
 <body>
     <!-- Navbar -->
@@ -42,8 +55,26 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS com fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    
+    <!-- JavaScript customizado -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Fallback para quando CDN não carrega -->
+    <script>
+        // Verificar se Bootstrap carregou
+        if (!window.bootstrap) {
+            console.warn('Bootstrap CDN falhou, tentando fallback...');
+        }
+        
+        // Verificar se Font Awesome carregou
+        if (!document.querySelector('.fa')) {
+            console.warn('Font Awesome CDN falhou...');
+        }
+    </script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

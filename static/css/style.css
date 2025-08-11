@@ -1,5 +1,5 @@
 /* Programa Equilíbrio - Belz Conecta Saúde */
-/* Custom CSS */
+/* Custom CSS - Otimizado para desenvolvimento local e produção (Vercel) */
 
 :root {
     --primary-color: #130E54;
@@ -12,10 +12,18 @@
     --dark-color: #343a40;
 }
 
+/* Garantir que fontes carreguem corretamente em todos os ambientes */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui, -apple-system;
+}
+
 /* Logo Styles */
 .navbar-brand img {
     transition: transform 0.3s ease, filter 0.3s ease;
     filter: brightness(1.1);
+    /* Fallback para casos onde a imagem não carrega */
+    background: var(--primary-color);
+    border-radius: 4px;
 }
 
 .navbar-brand:hover img {

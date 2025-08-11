@@ -87,8 +87,19 @@ app.config['SESSION_COOKIE_SECURE'] = config('SESSION_COOKIE_SECURE', default=is
 app.config['SESSION_COOKIE_HTTPONLY'] = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
 app.config['SESSION_COOKIE_SAMESITE'] = config('SESSION_COOKIE_SAMESITE', default='Lax')
 
-app.static_folder = 'static'
-app.template_folder = 'templates'
+# Configuração de pastas para funcionar tanto localmente quanto na Vercel
+if is_production:
+    # Na Vercel, usar caminhos absolutos
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    app.static_folder = os.path.join(base_dir, 'static')
+    app.template_folder = os.path.join(base_dir, 'templates')
+    app.static_url_path = '/static'
+    print(f"🔧 [PROD] Static folder: {app.static_folder}")
+    print(f"🔧 [PROD] Template folder: {app.template_folder}")
+else:
+    # Local, usar caminhos relativos
+    app.static_folder = 'static'
+    app.template_folder = 'templates'
 
 # Configuração do Supabase com tratamento robusto
 supabase = None
@@ -820,6 +831,37 @@ def admin_debug():
         'is_production': os.environ.get('VERCEL') or os.environ.get('FLASK_ENV') == 'production',
         'flask_secret_key_set': bool(app.secret_key),
     }
+    return jsonify(debug_info)
+
+# Rota de debug para verificar arquivos estáticos
+@app.route('/debug/static')
+def debug_static():
+    """Debug route para verificar configuração de arquivos estáticos"""
+    import glob
+    
+    debug_info = {
+        'static_folder': app.static_folder,
+        'static_url_path': app.static_url_path,
+        'template_folder': app.template_folder,
+        'is_production': os.environ.get('VERCEL') or os.environ.get('FLASK_ENV') == 'production',
+        'static_folder_exists': os.path.exists(app.static_folder) if app.static_folder else False,
+        'template_folder_exists': os.path.exists(app.template_folder) if app.template_folder else False,
+        'current_dir': os.getcwd(),
+        'file_structure': {}
+    }
+    
+    # Listar arquivos estáticos se a pasta existir
+    if debug_info['static_folder_exists']:
+        try:
+            static_files = []
+            for root, dirs, files in os.walk(app.static_folder):
+                for file in files:
+                    rel_path = os.path.relpath(os.path.join(root, file), app.static_folder)
+                    static_files.append(rel_path)
+            debug_info['static_files'] = static_files[:20]  # Limitar para não sobrecarregar
+        except Exception as e:
+            debug_info['static_files_error'] = str(e)
+    
     return jsonify(debug_info)
 
 @app.route('/admin')
