@@ -52,6 +52,21 @@ vercel --prod
 - ✅ `requirements.txt` - Dependências otimizadas
 - ✅ `main.py` - Configurado para produção
 
+## ⚠️ Possíveis Problemas
+
+### Erro: "functions property cannot be used with builds"
+Se aparecer este erro:
+```
+The `functions` property cannot be used in conjunction with the `builds` property
+```
+**Solução:** O `vercel.json` já foi corrigido para usar apenas `builds`.
+
+### Erro: "No Python files found"
+**Solução:** Certifique-se que `main.py` está na raiz do projeto.
+
+### Erro: "Module not found"
+**Solução:** Verifique se todas as dependências estão em `requirements.txt`.
+
 ## Suporte
 - Documentação Vercel: https://vercel.com/docs
 - Vercel + Python: https://vercel.com/docs/functions/serverless-functions/runtimes/python
