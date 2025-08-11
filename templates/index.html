@@ -309,6 +309,8 @@ document.getElementById('formDadosEmpresa').addEventListener('submit', function(
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Resposta da API:', data);
+        
         if (data.valid) {
             // CNPJ válido - coletar dados do formulário
             cnpjInput.classList.add('is-valid');
@@ -330,18 +332,22 @@ document.getElementById('formDadosEmpresa').addEventListener('submit', function(
                 return;
             }
             
-            // Adicionar dados da API ReceitaWS
-            dadosEmpresa.dados_receita = data.dados_empresa;
+            // Adicionar dados da API se disponível
+            if (data.dados_empresa) {
+                dadosEmpresa.dados_receita = data.dados_empresa;
+            }
             dadosEmpresa.cnpj_validado = true;
             
             // Salvar dados no sessionStorage
             sessionStorage.setItem('dadosEmpresa', JSON.stringify(dadosEmpresa));
             
+            console.log('Dados salvos no sessionStorage:', dadosEmpresa);
+            
             // Redirecionar para o questionário
             window.location.href = '/questionario';
             
         } else {
-            // CNPJ inválido
+            // CNPJ inválido ou empresa inativa
             cnpjInput.classList.add('is-invalid');
             cnpjInput.classList.remove('is-valid');
             document.getElementById('cnpjError').textContent = data.message || 'CNPJ não encontrado ou erro na consulta';

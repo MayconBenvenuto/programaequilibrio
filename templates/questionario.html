@@ -264,22 +264,41 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Dados do sessionStorage:', dadosCarregados);
             console.log('cnpj_validado:', dadosCarregados.cnpj_validado);
             console.log('dados_receita:', dadosCarregados.dados_receita);
+            console.log('cnpj:', dadosCarregados.cnpj);
             
-            // Verificar se CNPJ foi validado na página inicial
-            if (dadosCarregados.cnpj_validado && dadosCarregados.dados_receita) {
+            // Verificar se CNPJ existe nos dados (mais flexível)
+            const temCNPJ = dadosCarregados.cnpj || (dadosCarregados.dados_receita && dadosCarregados.dados_receita.cnpj);
+            const cnpjValidado = dadosCarregados.cnpj_validado === true;
+            
+            console.log('temCNPJ:', temCNPJ);
+            console.log('cnpjValidado:', cnpjValidado);
+            
+            // Permitir prosseguir se tem CNPJ válido, mesmo sem todos os dados da Receita
+            if (temCNPJ && (cnpjValidado || dadosCarregados.dados_receita)) {
                 // Usar dados da página inicial
                 dadosEmpresa = dadosCarregados;
                 
-                console.log('Dados do sessionStorage:', dadosCarregados);
-                console.log('cnpj_validado:', dadosCarregados.cnpj_validado);
-                console.log('dados_receita:', dadosCarregados.dados_receita);
+                console.log('Dados validados - prosseguindo com o questionário');
                 
                 // Exibir dados da empresa na barra superior
-                let razaoSocial, cnpj;
+                let razaoSocial = 'Empresa';
+                let cnpj = '---';
                 
                 try {
-                    razaoSocial = dadosCarregados.dados_receita.razao_social || dadosCarregados.razao_social || 'Empresa';
-                    cnpj = formatarCNPJ(dadosCarregados.dados_receita.cnpj);
+                    // Tentar pegar dados da receita primeiro, depois dados básicos
+                    if (dadosCarregados.dados_receita) {
+                        razaoSocial = dadosCarregados.dados_receita.razao_social || 
+                                    dadosCarregados.dados_receita.nome || 
+                                    dadosCarregados.razao_social || 
+                                    dadosCarregados.nome_empresa || 
+                                    'Empresa';
+                        cnpj = formatarCNPJ(dadosCarregados.dados_receita.cnpj || dadosCarregados.cnpj);
+                    } else {
+                        razaoSocial = dadosCarregados.razao_social || 
+                                    dadosCarregados.nome_empresa || 
+                                    'Empresa';
+                        cnpj = formatarCNPJ(dadosCarregados.cnpj);
+                    }
                     
                     $('#nomeEmpresaDisplay').text(razaoSocial);
                     $('#cnpjEmpresaDisplay').text(cnpj);
@@ -288,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (displayError) {
                     console.error('Erro ao exibir dados da empresa:', displayError);
                     $('#nomeEmpresaDisplay').text('Empresa');
-                    $('#cnpjEmpresaDisplay').text('---');
+                    $('#cnpjEmpresaDisplay').text(cnpj || '---');
                 }
                 
                 // Começar direto na primeira pergunta
@@ -309,14 +328,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('Dados carregados da página inicial:', dadosEmpresa);
             } else {
-                // Redirecionar se não há dados válidos
-                alert('Por favor, preencha e valide os dados da empresa primeiro.');
+                // CNPJ inválido ou dados insuficientes
+                console.log('Dados insuficientes para prosseguir:');
+                console.log('- temCNPJ:', temCNPJ);
+                console.log('- cnpjValidado:', cnpjValidado);
+                console.log('- dados_receita:', !!dadosCarregados.dados_receita);
+                
+                alert('CNPJ inválido ou não encontrado. Por favor, verifique o CNPJ e tente novamente.');
                 window.location.href = '/';
                 return;
             }
         } catch (error) {
             console.error('Erro ao carregar dados do sessionStorage:', error);
-            alert('Erro ao carregar dados da empresa. Por favor, refaça o processo.');
+            console.log('Dados do sessionStorage que causaram erro:', dadosEmpresaStorage);
+            
+            alert('Erro ao processar dados da empresa. Por favor, refaça o processo.');
             window.location.href = '/';
             return;
         }

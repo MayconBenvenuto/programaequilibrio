@@ -485,32 +485,40 @@ def validar_cnpj_route():
         print(f"   Situação: '{dados_empresa.get('situacao')}'")
         print(f"   CNPJ: '{dados_empresa.get('cnpj')}'")
         print(f"   Município: '{dados_empresa.get('endereco', {}).get('municipio')}'")
+        
+        # Verificar se empresa está ativa
+        situacao = dados_empresa.get('situacao', '').upper()
+        print(f"📋 [ROUTE] Verificando situação: '{situacao}'")
+        
+        if situacao and situacao != 'ATIVA':
+            print(f"⚠️ [ROUTE] Empresa não ativa: {situacao}")
+            return jsonify({
+                'valid': False, 
+                'message': f'Empresa com situação: {dados_empresa.get("situacao", "INATIVA")}. Apenas empresas ativas podem realizar o diagnóstico.'
+            })
     
-    if not dados_empresa:
-        print(f"❌ [ROUTE] Nenhum dado encontrado")
-        return jsonify({'valid': False, 'message': 'CNPJ não encontrado ou erro na consulta'})
-    
-    situacao = dados_empresa.get('situacao', '').upper()
-    print(f"📋 [ROUTE] Verificando situação: '{situacao}'")
-    
-    if situacao != 'ATIVA':
-        print(f"⚠️ [ROUTE] Empresa não ativa: {situacao}")
-        return jsonify({
-            'valid': False, 
-            'message': f'Empresa com situação: {dados_empresa.get("situacao", "INATIVA")}. Apenas empresas ativas podem realizar o diagnóstico.'
-        })
-    
+    # CNPJ válido no formato - permitir prosseguir mesmo sem dados completos
     resposta = {
         'valid': True,
-        'dados_empresa': dados_empresa,
         'cnpj_validado': True,
-        'message': 'CNPJ válido e empresa ativa'
+        'message': 'CNPJ válido'
     }
+    
+    # Adicionar dados da empresa se disponível
+    if dados_empresa:
+        resposta['dados_empresa'] = dados_empresa
+        resposta['message'] = 'CNPJ válido e dados da empresa obtidos'
+    else:
+        print(f"⚠️ [ROUTE] Dados da empresa não encontrados, mas CNPJ é válido")
+        resposta['message'] = 'CNPJ válido, mas dados da empresa não puderam ser obtidos'
     
     print(f"✅ [ROUTE] Sucesso! Retornando dados:")
     print(f"   valid: {resposta['valid']}")
     print(f"   cnpj_validado: {resposta['cnpj_validado']}")
-    print(f"   dados_empresa keys: {list(resposta['dados_empresa'].keys())}")
+    if 'dados_empresa' in resposta:
+        print(f"   dados_empresa keys: {list(resposta['dados_empresa'].keys())}")
+    else:
+        print(f"   dados_empresa: não disponível")
     
     return jsonify(resposta)
 
