@@ -316,42 +316,70 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### 🌐 Deploy no Heroku
+### ⚡ Deploy na Vercel (Recomendado)
 
-#### 1. Preparar arquivos
+A Vercel oferece deploy simples e gratuito para aplicações Flask.
 
-Criar `Procfile`:
+#### **1. Preparar o Projeto**
 
-```
-web: gunicorn main:app
-```
+Os seguintes arquivos já estão configurados:
+- ✅ `vercel.json` - Configuração da Vercel
+- ✅ `requirements.txt` - Dependências otimizadas
+- ✅ `main.py` - Configurado para produção
 
-Criar `runtime.txt`:
-
-```
-python-3.11.5
-```
-
-#### 2. Deploy
+#### **2. Deploy via CLI**
 
 ```bash
-# Instalar Heroku CLI
-# https://devcenter.heroku.com/articles/heroku-cli
+# Instalar Vercel CLI
+npm i -g vercel
 
-# Login
-heroku login
-
-# Criar app
-heroku create nome-do-app
+# Fazer login
+vercel login
 
 # Deploy
-git add .
-git commit -m "Deploy inicial"
-git push heroku main
+vercel
 
-# Abrir app
-heroku open
+# Deploy em produção
+vercel --prod
 ```
+
+#### **3. Deploy via GitHub (Mais Fácil)**
+
+1. **Criar Repositório no GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/SEU-USUARIO/programa-equilibrio.git
+   git push -u origin main
+   ```
+
+2. **Conectar à Vercel**:
+   - Acesse https://vercel.com
+   - Clique em "New Project"
+   - Conecte com GitHub
+   - Selecione seu repositório
+   - Configure:
+     - Framework: **Other**
+     - Root Directory: **/** (raiz)
+     - Build Command: **(deixe vazio)**
+     - Output Directory: **(deixe vazio)**
+   - Clique em "Deploy"
+
+3. **Deploy Automático**:
+   - Cada push no GitHub fará deploy automático
+   - URL será fornecida automaticamente
+
+#### **4. Variáveis de Ambiente (se necessário)**
+
+No dashboard da Vercel:
+- Settings → Environment Variables
+- Adicione se precisar:
+  ```
+  FLASK_ENV=production
+  DEBUG=False
+  ```
 
 ### 📊 Monitoramento em Produção
 

@@ -541,4 +541,10 @@ if __name__ == '__main__':
     os.makedirs('static/js', exist_ok=True)
     os.makedirs('static/images', exist_ok=True)
     
+    # Para desenvolvimento local
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Para Vercel - exportar a aplicação
+if __name__ != '__main__':
+    # Configurações para produção na Vercel
+    app.config['DEBUG'] = False
