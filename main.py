@@ -20,14 +20,22 @@ from functools import wraps
 
 app = Flask(__name__)
 
-# Configurações
+# Configurações da aplicação usando variáveis de ambiente
 app.secret_key = config('FLASK_SECRET_KEY', default='dev-key-change-in-production')
+app.config['DEBUG'] = config('DEBUG', default=False, cast=bool)
+app.config['PERMANENT_SESSION_LIFETIME'] = config('PERMANENT_SESSION_LIFETIME', default=3600, cast=int)
+
+# Configurações de segurança
+app.config['SESSION_COOKIE_SECURE'] = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+app.config['SESSION_COOKIE_HTTPONLY'] = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
+app.config['SESSION_COOKIE_SAMESITE'] = config('SESSION_COOKIE_SAMESITE', default='Lax')
+
 app.static_folder = 'static'
 app.template_folder = 'templates'
 
 # Configuração do Supabase
 SUPABASE_URL = config('SUPABASE_URL', default='')
-SUPABASE_KEY = config('SUPABASE_KEY', default='')
+SUPABASE_KEY = config('SUPABASE_ANON_KEY', default=config('SUPABASE_KEY', default=''))
 
 if SUPABASE_URL and SUPABASE_KEY:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -38,8 +46,17 @@ else:
 # Validador de CNPJ
 cnpj_validator = CNPJ()
 
-# API ReceitaWS
+# APIs externas
 RECEITAWS_API_URL = config('RECEITAWS_API_URL', default='https://www.receitaws.com.br/v1/cnpj/')
+RECEITAWS_TIMEOUT = config('RECEITAWS_TIMEOUT', default=15, cast=int)
+VIACEP_API_URL = config('VIACEP_API_URL', default='https://viacep.com.br/ws/')
+VIACEP_TIMEOUT = config('VIACEP_TIMEOUT', default=10, cast=int)
+
+# Configurações de administração
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@conecta.com')
+ADMIN_PASSWORD = config('ADMIN_PASSWORD', default='admin123')
+ADMIN_NAME = config('ADMIN_NAME', default='Administrador')
+ADMIN_SESSION_TIMEOUT = config('ADMIN_SESSION_TIMEOUT', default=7200, cast=int)
 
 def requires_admin(f):
     """Decorator para rotas que requerem autenticação de admin"""
@@ -66,8 +83,8 @@ def consultar_cnpj_receita_ws(cnpj):
         # Remove formatação do CNPJ
         cnpj_limpo = re.sub(r'[^\d]', '', cnpj)
         
-        # Faz a requisição para a API
-        response = requests.get(f"{RECEITAWS_API_URL}{cnpj_limpo}", timeout=10)
+        # Faz a requisição para a API usando timeout configurado
+        response = requests.get(f"{RECEITAWS_API_URL}{cnpj_limpo}", timeout=RECEITAWS_TIMEOUT)
         
         if response.status_code == 200:
             data = response.json()
