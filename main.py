@@ -589,7 +589,7 @@ def validar_cnpj_route():
 
 @app.route('/')
 def index():
-    return render_template('questionario.html', perguntas=PERGUNTAS)
+    return render_template('index.html')
 
 @app.route('/questionario')
 def questionario():
