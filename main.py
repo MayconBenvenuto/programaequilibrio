@@ -122,62 +122,100 @@ def consultar_cnpj_receita_ws(cnpj):
 
 def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
     """Salva empresa e diagnóstico no Supabase"""
+    print("🔍 Iniciando salvamento no Supabase...")
+    
     if not supabase:
+        print("❌ ERRO: Cliente Supabase não inicializado")
         return None, None
     
     try:
+        cnpj = dados_empresa.get('cnpj', '')
+        print(f"📋 Verificando empresa existente com CNPJ: {cnpj}")
+        
         # Verificar se empresa já existe
-        empresa_existente = supabase.table('empresas').select('*').eq('cnpj', dados_empresa['cnpj']).execute()
+        empresa_existente = supabase.table('empresas').select('*').eq('cnpj', cnpj).execute()
         
         if empresa_existente.data:
             # Empresa já existe, usar ID existente
             empresa_id = empresa_existente.data[0]['id']
+            print(f"🔄 Empresa existente encontrada. ID: {empresa_id}")
             
             # Atualizar dados da empresa se necessário
-            supabase.table('empresas').update({
-                'rh_responsavel': dados_empresa['rh_responsavel'],
+            dados_update = {
+                'rh_responsavel': dados_empresa.get('rh_responsavel', ''),
                 'cargo_rh': dados_empresa.get('cargo', ''),
                 'email': dados_empresa.get('email', ''),
                 'whatsapp': dados_empresa.get('whatsapp', ''),
-                'num_colaboradores': dados_empresa.get('num_colaboradores', ''),
+                'num_colaboradores': dados_empresa.get('num_colaboradores', 0),
                 'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
                 'updated_at': 'NOW()'
-            }).eq('id', empresa_id).execute()
+            }
+            
+            print(f"📝 Atualizando empresa com dados: {dados_update}")
+            update_result = supabase.table('empresas').update(dados_update).eq('id', empresa_id).execute()
+            
+            if update_result.data:
+                print("✅ Empresa atualizada com sucesso")
+            else:
+                print("⚠️ Empresa não foi atualizada, mas continuando...")
             
         else:
             # Criar nova empresa
-            nova_empresa = supabase.table('empresas').insert({
-                'razao_social': dados_empresa['razao_social'],
+            print("🆕 Criando nova empresa...")
+            dados_nova_empresa = {
+                'razao_social': dados_empresa.get('razao_social', ''),
                 'nome_fantasia': dados_empresa.get('nome_fantasia', ''),
-                'cnpj': dados_empresa['cnpj'],
-                'email': dados_empresa['email'],
+                'cnpj': cnpj,
+                'email': dados_empresa.get('email', ''),
                 'telefone': dados_empresa.get('telefone', ''),
                 'whatsapp': dados_empresa.get('whatsapp', ''),
                 'endereco': dados_empresa.get('endereco', {}),
-                'num_colaboradores': dados_empresa['num_colaboradores'],
+                'num_colaboradores': dados_empresa.get('num_colaboradores', 0),
                 'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
-                'rh_responsavel': dados_empresa['rh_responsavel'],
-                'cargo_rh': dados_empresa['cargo']
-            }).execute()
+                'rh_responsavel': dados_empresa.get('rh_responsavel', ''),
+                'cargo_rh': dados_empresa.get('cargo', '')
+            }
             
-            empresa_id = nova_empresa.data[0]['id']
+            print(f"📝 Inserindo nova empresa: {dados_nova_empresa}")
+            nova_empresa = supabase.table('empresas').insert(dados_nova_empresa).execute()
+            
+            if nova_empresa.data:
+                empresa_id = nova_empresa.data[0]['id']
+                print(f"✅ Nova empresa criada com ID: {empresa_id}")
+            else:
+                print(f"❌ ERRO: Falha ao criar nova empresa. Resposta: {nova_empresa}")
+                return None, None
         
         # Salvar diagnóstico
-        novo_diagnostico = supabase.table('diagnosticos').insert({
+        print(f"📊 Salvando diagnóstico para empresa ID: {empresa_id}")
+        
+        dados_diagnostico = {
             'empresa_id': empresa_id,
             'respostas': respostas,
             'analise': analise,
-            'nivel_risco': analise['nivel_risco'],
-            'questoes_criticas': analise['questoes_criticas'],
-            'areas_foco': analise['areas_foco'],
-            'acoes_recomendadas': analise['acoes_recomendadas'],
+            'nivel_risco': analise.get('nivel_risco', ''),
+            'questoes_criticas': analise.get('questoes_criticas', 0),
+            'areas_foco': analise.get('areas_foco', []),
+            'acoes_recomendadas': analise.get('acoes_recomendadas', []),
             'status': 'concluido'
-        }).execute()
+        }
         
-        return empresa_id, novo_diagnostico.data[0]['id']
+        print(f"📝 Inserindo diagnóstico: {dados_diagnostico}")
+        novo_diagnostico = supabase.table('diagnosticos').insert(dados_diagnostico).execute()
+        
+        if novo_diagnostico.data:
+            diagnostico_id = novo_diagnostico.data[0]['id']
+            print(f"✅ Diagnóstico salvo com ID: {diagnostico_id}")
+            return empresa_id, diagnostico_id
+        else:
+            print(f"❌ ERRO: Falha ao salvar diagnóstico. Resposta: {novo_diagnostico}")
+            return empresa_id, None
         
     except Exception as e:
-        print(f"Erro ao salvar no banco: {e}")
+        print(f"❌ ERRO CRÍTICO ao salvar no banco: {str(e)}")
+        print(f"❌ Tipo do erro: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
         return None, None
 
 # Dados das perguntas do questionário
@@ -336,7 +374,26 @@ def questionario():
 @app.route('/processar_questionario', methods=['POST'])
 def processar_questionario():
     try:
+        print("=== INICIANDO PROCESSAMENTO ===")
+        
+        # Verificar configuração do Supabase
+        if not supabase:
+            print("❌ ERRO: Supabase não configurado!")
+            print(f"SUPABASE_URL: {'✅ OK' if SUPABASE_URL else '❌ MISSING'}")
+            print(f"SUPABASE_KEY: {'✅ OK' if SUPABASE_KEY else '❌ MISSING'}")
+            return jsonify({
+                'status': 'error',
+                'message': 'Banco de dados não configurado. Verifique as variáveis de ambiente.'
+            }), 500
+        
         dados = request.get_json()
+        
+        if not dados:
+            print("❌ ERRO: Dados JSON não recebidos")
+            return jsonify({
+                'status': 'error',
+                'message': 'Dados não recebidos'
+            }), 400
         
         # Debug: imprimir dados recebidos
         print("=== DEBUG: Dados recebidos ===")
@@ -345,10 +402,12 @@ def processar_questionario():
             print(f"WhatsApp recebido: {empresa.get('whatsapp', 'NÃO INFORMADO')}")
             print(f"Email recebido: {empresa.get('email', 'NÃO INFORMADO')}")
             print(f"Setor recebido: {empresa.get('setor', 'NÃO INFORMADO')}")
+            print(f"CNPJ recebido: {empresa.get('cnpj', 'NÃO INFORMADO')}")
         print("=============================")
         
         # Validar dados obrigatórios
         if 'dados_empresa' not in dados or 'respostas' not in dados:
+            print("❌ ERRO: Dados obrigatórios faltando")
             return jsonify({
                 'status': 'error',
                 'message': 'Dados incompletos'
@@ -358,17 +417,33 @@ def processar_questionario():
         respostas = dados['respostas']
         
         # Validar CNPJ novamente
-        if not validar_cnpj(dados_empresa.get('cnpj', '')):
+        cnpj = dados_empresa.get('cnpj', '')
+        if not cnpj or not validar_cnpj(cnpj):
+            print(f"❌ ERRO: CNPJ inválido: {cnpj}")
             return jsonify({
                 'status': 'error',
                 'message': 'CNPJ inválido'
             }), 400
         
+        print("✅ Dados validados com sucesso")
+        
         # Gerar análise
+        print("🧮 Gerando análise...")
         analise = gerar_analise(respostas)
+        print("✅ Análise gerada")
         
         # Salvar no banco de dados (Supabase)
+        print("💾 Salvando no banco de dados...")
         empresa_id, diagnostico_id = salvar_empresa_diagnostico(dados_empresa, respostas, analise)
+        
+        if not empresa_id or not diagnostico_id:
+            print("❌ ERRO: Falha ao salvar no banco de dados")
+            return jsonify({
+                'status': 'error',
+                'message': 'Erro ao salvar dados no banco. Tente novamente.'
+            }), 500
+        
+        print(f"✅ Dados salvos - Empresa ID: {empresa_id}, Diagnóstico ID: {diagnostico_id}")
         
         # Salvar dados temporariamente para geração do PDF
         dados_completos = {
@@ -379,8 +454,15 @@ def processar_questionario():
             'diagnostico_id': diagnostico_id
         }
         
-        with open('temp_diagnostico.json', 'w', encoding='utf-8') as f:
-            json.dump(dados_completos, f, ensure_ascii=False, indent=2, default=str)
+        try:
+            with open('temp_diagnostico.json', 'w', encoding='utf-8') as f:
+                json.dump(dados_completos, f, ensure_ascii=False, indent=2, default=str)
+            print("✅ Arquivo temporário criado")
+        except Exception as temp_error:
+            print(f"⚠️ Aviso: Erro ao criar arquivo temporário: {temp_error}")
+            # Não bloquear o processo por causa do arquivo temporário
+        
+        print("🎉 PROCESSAMENTO CONCLUÍDO COM SUCESSO")
         
         return jsonify({
             'status': 'success',
@@ -389,11 +471,16 @@ def processar_questionario():
             'diagnostico_id': diagnostico_id,
             'redirect': '/resultado'
         })
+        
     except Exception as e:
-        print(f"Erro no processamento: {e}")
+        print(f"❌ ERRO CRÍTICO no processamento: {str(e)}")
+        print(f"❌ Tipo do erro: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'status': 'error',
-            'message': f'Erro interno: {str(e)}'
+            'message': f'Erro interno do servidor. Detalhes: {str(e)}'
         }), 500
 
 @app.route('/resultado')

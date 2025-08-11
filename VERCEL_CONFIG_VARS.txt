@@ -1,0 +1,57 @@
+# ====================================================================
+# CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE PARA VERCEL
+# ====================================================================
+#
+# INSTRUÇÕES:
+# 1. Acesse: https://vercel.com/dashboard
+# 2. Selecione seu projeto 'programaequilibrio'
+# 3. Vá em 'Settings' > 'Environment Variables'
+# 4. Adicione cada variável abaixo:
+#
+# VARIÁVEIS OBRIGATÓRIAS:
+
+# FLASK_ENV
+FLASK_ENV=production
+
+# DEBUG
+DEBUG=false
+
+# FLASK_SECRET_KEY
+FLASK_SECRET_KEY=ProgramaEquilibrio2025!@#$%SuperSecretKey789XYZ
+
+# SUPABASE_URL
+SUPABASE_URL=https://xzjbnohtfuppilpzvvqy.supabase.co
+
+# SUPABASE_ANON_KEY
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6amJub2h0ZnVwcGlscHp2dnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MjUzOTgsImV4cCI6MjA3MDUwMTM5OH0.qXDZrGjacFYOOdQcftzBj1Zkutt3jTIf-tjGFsb3Za8
+
+# ADMIN_EMAIL
+ADMIN_EMAIL=admin@conecta.com
+
+# ADMIN_PASSWORD
+ADMIN_PASSWORD=Admin123!Conecta
+
+# ADMIN_NAME
+ADMIN_NAME=Administrador Sistema
+
+# RECEITAWS_API_URL
+RECEITAWS_API_URL=https://www.receitaws.com.br/v1/cnpj/
+
+# VIACEP_API_URL
+VIACEP_API_URL=https://viacep.com.br/ws/
+
+# SESSION_COOKIE_SECURE
+SESSION_COOKIE_SECURE=true
+
+# SESSION_COOKIE_HTTPONLY
+SESSION_COOKIE_HTTPONLY=true
+
+# PERMANENT_SESSION_LIFETIME
+PERMANENT_SESSION_LIFETIME=3600
+
+# ====================================================================
+# APÓS CONFIGURAR:
+# 1. Clique em 'Redeploy' no painel da Vercel
+# 2. Aguarde o deploy completar
+# 3. Teste a aplicação
+# ====================================================================
