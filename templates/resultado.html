@@ -39,16 +39,22 @@
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>Empresa:</strong> {{ dados.dados_empresa.razao_social or 'N/A' }}</p>
+                            {% if dados.dados_empresa.nome_fantasia %}
+                            <p><strong>Nome Fantasia:</strong> {{ dados.dados_empresa.nome_fantasia }}</p>
+                            {% endif %}
                             <p><strong>CNPJ:</strong> {{ dados.dados_empresa.cnpj or 'N/A' }}</p>
                             <p><strong>RH Responsável:</strong> {{ dados.dados_empresa.rh_responsavel or 'N/A' }}</p>
                         </div>
                         <div class="col-md-6">
                             <p><strong>Cargo:</strong> {{ dados.dados_empresa.cargo or 'N/A' }}</p>
                             <p><strong>E-mail:</strong> {{ dados.dados_empresa.email or 'N/A' }}</p>
+                            {% if dados.dados_empresa.whatsapp %}
+                            <p><strong>WhatsApp:</strong> {{ dados.dados_empresa.whatsapp }}</p>
+                            {% endif %}
                             <p><strong>Colaboradores:</strong> {{ dados.dados_empresa.num_colaboradores or 'N/A' }}</p>
                         </div>
                     </div>
-                    <p><strong>Data do Diagnóstico:</strong> {{ analise.data_diagnostico }}</p>
+                    <p><strong>Data do Diagnóstico:</strong> {{ dados.analise.data_diagnostico }}</p>
                 </div>
             </div>
         </div>
@@ -59,7 +65,7 @@
         <div class="col-md-4">
             <div class="card text-white bg-danger h-100 shadow-sm border-0">
                 <div class="card-body text-center d-flex flex-column justify-content-center">
-                    <h1 class="display-2 fw-bold counter-animation">{{ analise.questoes_criticas }}</h1>
+                    <h1 class="display-2 fw-bold counter-animation">{{ dados.analise.questoes_criticas }}</h1>
                     <h5 class="mb-0">Questões Críticas</h5>
                 </div>
             </div>
@@ -67,7 +73,7 @@
         <div class="col-md-4">
             <div class="card text-white h-100 shadow-sm border-0 bg-gradient-primary">
                 <div class="card-body text-center d-flex flex-column justify-content-center">
-                    <h1 class="display-2 fw-bold counter-animation">{{ analise.acoes_recomendadas|length }}</h1>
+                    <h1 class="display-2 fw-bold counter-animation">{{ dados.analise.acoes_recomendadas|length }}</h1>
                     <h5 class="mb-0">Ações Recomendadas</h5>
                 </div>
             </div>
@@ -75,7 +81,7 @@
         <div class="col-md-4">
             <div class="card text-white bg-success h-100 shadow-sm border-0">
                 <div class="card-body text-center d-flex flex-column justify-content-center">
-                    <h1 class="display-2 fw-bold counter-animation">{{ (analise.acoes_recomendadas|length) * 8 }}</h1>
+                    <h1 class="display-2 fw-bold counter-animation">{{ (dados.analise.acoes_recomendadas|length) * 8 }}</h1>
                     <h5 class="mb-0">Horas de Treinamento</h5>
                 </div>
             </div>
@@ -93,7 +99,7 @@
                     </h3>
                 </div>
                 <div class="card-body">
-                    {% for acao in analise.acoes_recomendadas %}
+                    {% for acao in dados.analise.acoes_recomendadas %}
                     <div class="card mb-3 {% if 'Comunicação' in acao %}border-danger{% else %}border-warning{% endif %}">
                         <div class="card-body">
                             <div class="row">

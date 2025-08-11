@@ -10,11 +10,11 @@
             <div class="mb-4">
                 <div class="progress shadow-sm" style="height: 12px;">
                     <div class="progress-bar" role="progressbar" 
-                         style="width: 10%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));" id="progressBar"></div>
+                         style="width: 8%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));" id="progressBar"></div>
                 </div>
                 <div class="d-flex justify-content-between mt-2">
-                    <small class="text-muted fw-bold">Questão <span id="questaoAtual">1</span> de {{ perguntas|length }}</small>
-                    <small class="text-muted fw-bold"><span id="porcentagem">10</span>% concluído</small>
+                    <small class="text-muted fw-bold">Etapa <span id="etapaAtual">1</span> de {{ perguntas|length + 1 }}</small>
+                    <small class="text-muted fw-bold"><span id="porcentagem">8</span>% concluído</small>
                 </div>
             </div>
 
@@ -22,9 +22,106 @@
             <div class="card shadow-lg">
                 <div class="card-body p-5">
                     <form id="formQuestionario">
+                        <!-- Dados da Empresa (Etapa 0) -->
+                        <div class="pergunta-container" data-pergunta="0" id="dadosEmpresa">
+                            <div class="mb-4">
+                                <h4 class="fw-bold mb-3" style="color: var(--primary-color);">
+                                    🏢 Dados da Empresa
+                                </h4>
+                                <p class="text-muted fst-italic">
+                                    <i class="fas fa-info-circle me-2" style="color: var(--secondary-color);"></i>
+                                    Para começar o diagnóstico, precisamos validar os dados da sua empresa
+                                </p>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="cnpj" class="form-label fw-bold">CNPJ *</label>
+                                    <input type="text" class="form-control form-control-lg" id="cnpj" 
+                                           placeholder="00.000.000/0001-00" maxlength="18" required>
+                                    <div class="invalid-feedback" id="cnpjError"></div>
+                                    <div class="valid-feedback">CNPJ válido!</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <button type="button" class="btn btn-outline-primary btn-lg mt-4" 
+                                            id="validarCnpj" disabled>
+                                        <i class="fas fa-search me-2"></i>Validar CNPJ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Dados preenchidos automaticamente -->
+                            <div id="dadosEmpresaContainer" style="display: none;">
+                                <div class="alert alert-success" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Empresa encontrada!</strong> Verifique e complete os dados abaixo.
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="razaoSocial" class="form-label fw-bold">Razão Social *</label>
+                                        <input type="text" class="form-control form-control-lg" id="razaoSocial" readonly>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nomeFantasia" class="form-label fw-bold">Nome Fantasia</label>
+                                        <input type="text" class="form-control form-control-lg" id="nomeFantasia" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="rhResponsavel" class="form-label fw-bold">RH Responsável *</label>
+                                        <input type="text" class="form-control form-control-lg" id="rhResponsavel" 
+                                               placeholder="Nome completo" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cargoRh" class="form-label fw-bold">Cargo *</label>
+                                        <input type="text" class="form-control form-control-lg" id="cargoRh" 
+                                               placeholder="Ex: Analista de RH" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="emailContato" class="form-label fw-bold">E-mail de Contato *</label>
+                                        <input type="email" class="form-control form-control-lg" id="emailContato" 
+                                               placeholder="email@empresa.com.br" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="whatsapp" class="form-label fw-bold">WhatsApp *</label>
+                                        <input type="tel" class="form-control form-control-lg" id="whatsapp" 
+                                               placeholder="(11) 99999-9999" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="numColaboradores" class="form-label fw-bold">Número de Colaboradores *</label>
+                                        <select class="form-select form-select-lg" id="numColaboradores" required>
+                                            <option value="">Selecione</option>
+                                            <option value="1-10">1 a 10 funcionários</option>
+                                            <option value="11-50">11 a 50 funcionários</option>
+                                            <option value="51-100">51 a 100 funcionários</option>
+                                            <option value="101-500">101 a 500 funcionários</option>
+                                            <option value="501-1000">501 a 1000 funcionários</option>
+                                            <option value="1000+">Mais de 1000 funcionários</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="navegacao-container d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="proximaEtapa()" 
+                                        id="btnProximaEtapa" disabled>
+                                    Iniciar Diagnóstico →<i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Perguntas do questionário -->
                         {% for pergunta in perguntas %}
                         <div class="pergunta-container" data-pergunta="{{ pergunta.id }}" 
-                             {% if pergunta.id != 1 %}style="display: none;"{% endif %}>
+                             style="display: none;">
                             
                             <div class="mb-4">
                                 <h4 class="fw-bold mb-3" style="color: var(--primary-color);">{{ pergunta.titulo }}</h4>
@@ -51,13 +148,9 @@
                             </div>
 
                             <div class="navegacao-container d-flex justify-content-between mt-4">
-                                {% if pergunta.id > 1 %}
                                 <button type="button" class="btn btn-secondary" onclick="voltarPergunta()">
                                     <i class="fas fa-arrow-left me-2"></i>← Anterior
                                 </button>
-                                {% else %}
-                                <div></div>
-                                {% endif %}
 
                                 {% if pergunta.id < perguntas|length %}
                                 <button type="button" class="btn btn-primary" onclick="proximaPergunta()" disabled>
@@ -83,8 +176,8 @@
                             <div class="spinner-border text-primary mb-3" role="status">
                                 <span class="visually-hidden">Carregando...</span>
                             </div>
-                            <h5>Processando seu diagnóstico...</h5>
-                            <p class="text-muted">Analisando as respostas e gerando recomendações personalizadas.</p>
+                            <h5 id="loadingText">Validando CNPJ...</h5>
+                            <p class="text-muted" id="loadingSubText">Consultando dados da empresa na Receita Federal.</p>
                         </div>
                     </div>
                 </div>
@@ -95,9 +188,231 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 <script>
 // Configurações do questionário
-let perguntaAtual = 1;
+let etapaAtual = 0;
+let totalEtapas = {{ perguntas|length + 1 }};
+let dadosEmpresa = {};
+let respostas = {};
+
+$(document).ready(function() {
+    // Máscaras para os campos
+    $('#cnpj').mask('00.000.000/0000-00', {
+        reverse: false,
+        placeholder: '00.000.000/0000-00'
+    });
+    
+    $('#whatsapp').mask('(00) 00000-0000', {
+        placeholder: '(11) 99999-9999'
+    });
+    
+    // Validação em tempo real do CNPJ
+    $('#cnpj').on('input', function() {
+        const cnpj = $(this).val();
+        if (cnpj.length === 18) {
+            $('#validarCnpj').prop('disabled', false);
+            $(this).removeClass('is-invalid').removeClass('is-valid');
+        } else {
+            $('#validarCnpj').prop('disabled', true);
+            $('#dadosEmpresaContainer').hide();
+            $('#btnProximaEtapa').prop('disabled', true);
+        }
+    });
+    
+    // Validação dos campos obrigatórios
+    $('#dadosEmpresaContainer input[required], #dadosEmpresaContainer select[required]').on('input change', function() {
+        validarDadosEmpresa();
+    });
+});
+
+function validarCnpj() {
+    const cnpj = $('#cnpj').val();
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    $('#loadingText').text('Validando CNPJ...');
+    $('#loadingSubText').text('Consultando dados da empresa na Receita Federal.');
+    loadingModal.show();
+    
+    $.ajax({
+        url: '/validar_cnpj',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ cnpj: cnpj }),
+        success: function(response) {
+            loadingModal.hide();
+            
+            if (response.valid) {
+                $('#cnpj').addClass('is-valid').removeClass('is-invalid');
+                preencherDadosEmpresa(response.dados_empresa);
+                $('#dadosEmpresaContainer').show();
+                
+                // Scroll para os dados da empresa
+                $('#dadosEmpresaContainer')[0].scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+            } else {
+                $('#cnpj').addClass('is-invalid').removeClass('is-valid');
+                $('#cnpjError').text(response.message);
+                $('#dadosEmpresaContainer').hide();
+            }
+        },
+        error: function(xhr, status, error) {
+            loadingModal.hide();
+            $('#cnpj').addClass('is-invalid').removeClass('is-valid');
+            $('#cnpjError').text('Erro ao validar CNPJ. Tente novamente.');
+        }
+    });
+}
+
+function preencherDadosEmpresa(dados) {
+    dadosEmpresa = dados;
+    
+    $('#razaoSocial').val(dados.razao_social || '');
+    $('#nomeFantasia').val(dados.nome_fantasia || '');
+    
+    // Se tem email da API, preenche
+    if (dados.email) {
+        $('#emailContato').val(dados.email);
+    }
+    
+    // Se tem telefone da API, tenta preencher o WhatsApp
+    if (dados.telefone) {
+        $('#whatsapp').val(dados.telefone);
+    }
+    
+    validarDadosEmpresa();
+}
+
+function validarDadosEmpresa() {
+    const campos = ['#rhResponsavel', '#cargoRh', '#emailContato', '#whatsapp', '#numColaboradores'];
+    let todosPreenchidos = true;
+    
+    campos.forEach(campo => {
+        if (!$(campo).val().trim()) {
+            todosPreenchidos = false;
+        }
+    });
+    
+    $('#btnProximaEtapa').prop('disabled', !todosPreenchidos);
+}
+
+function proximaEtapa() {
+    if (etapaAtual === 0) {
+        // Coletar dados da empresa
+        dadosEmpresa = {
+            ...dadosEmpresa,
+            cnpj: $('#cnpj').val(),
+            razao_social: $('#razaoSocial').val(),
+            nome_fantasia: $('#nomeFantasia').val(),
+            rh_responsavel: $('#rhResponsavel').val(),
+            cargo: $('#cargoRh').val(),
+            email: $('#emailContato').val(),
+            whatsapp: $('#whatsapp').val(),
+            num_colaboradores: $('#numColaboradores').val()
+        };
+        
+        etapaAtual = 1;
+    } else {
+        etapaAtual++;
+    }
+    
+    atualizarProgresso();
+    mostrarEtapa(etapaAtual);
+}
+
+function proximaPergunta() {
+    etapaAtual++;
+    atualizarProgresso();
+    mostrarEtapa(etapaAtual);
+}
+
+function voltarPergunta() {
+    etapaAtual--;
+    atualizarProgresso();
+    mostrarEtapa(etapaAtual);
+}
+
+function mostrarEtapa(etapa) {
+    $('.pergunta-container').hide();
+    $(`.pergunta-container[data-pergunta="${etapa}"]`).show();
+    
+    // Verificar se resposta está selecionada para perguntas > 0
+    if (etapa > 0) {
+        const radioSelecionado = $(`input[name="pergunta_${etapa}"]:checked`);
+        const botaoProximo = $(`.pergunta-container[data-pergunta="${etapa}"] .btn-primary, .pergunta-container[data-pergunta="${etapa}"] .btn-success`);
+        botaoProximo.prop('disabled', radioSelecionado.length === 0);
+    }
+}
+
+function atualizarProgresso() {
+    const porcentagem = Math.round((etapaAtual / totalEtapas) * 100);
+    $('#progressBar').css('width', porcentagem + '%');
+    $('#etapaAtual').text(etapaAtual + 1);
+    $('#porcentagem').text(porcentagem);
+}
+
+// Event listener para as opções de resposta
+$(document).on('change', 'input[type="radio"]', function() {
+    const perguntaId = $(this).attr('name').replace('pergunta_', '');
+    const valor = $(this).val();
+    
+    respostas[perguntaId] = valor;
+    
+    // Habilitar botão de próxima pergunta
+    const botaoProximo = $(this).closest('.pergunta-container').find('.btn-primary, .btn-success');
+    botaoProximo.prop('disabled', false);
+});
+
+// Event listener para o botão de validar CNPJ
+$('#validarCnpj').on('click', validarCnpj);
+
+function finalizarQuestionario() {
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    $('#loadingText').text('Processando diagnóstico...');
+    $('#loadingSubText').text('Analisando as respostas e gerando recomendações personalizadas.');
+    loadingModal.show();
+    
+    const dadosCompletos = {
+        dados_empresa: dadosEmpresa,
+        respostas: respostas
+    };
+    
+    $.ajax({
+        url: '/processar_questionario',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(dadosCompletos),
+        success: function(response) {
+            loadingModal.hide();
+            
+            if (response.status === 'success') {
+                window.location.href = response.redirect;
+            } else {
+                alert('Erro: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            loadingModal.hide();
+            
+            let errorMessage = 'Erro ao processar questionário.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            
+            alert(errorMessage);
+        }
+    });
+}
+
+// Inicializar
+$(document).ready(function() {
+    atualizarProgresso();
+    mostrarEtapa(0);
+});
+</script>
+{% endblock %}
 const totalPerguntas = parseInt('{{ perguntas|length }}');
 const respostas = {};
 

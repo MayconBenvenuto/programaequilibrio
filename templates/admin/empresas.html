@@ -1,0 +1,204 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Empresas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2 class="fw-bold mb-0">Empresas Cadastradas</h2>
+        <p class="text-muted">Visualize todas as empresas que realizaram diagnósticos</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <form method="GET" class="d-flex">
+            <input type="text" class="form-control me-2" name="search" 
+                   placeholder="Buscar por empresa, CNPJ ou RH..." 
+                   value="{{ search }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if empresas %}
+<div class="card stat-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data Último Diagnóstico</th>
+                        <th>Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Contato</th>
+                        <th>Colaboradores</th>
+                        <th>Último Risco</th>
+                        <th>Total Diagnósticos</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr>
+                        <td>
+                            <small class="text-muted">
+                                {{ empresa.data_diagnostico.strftime('%d/%m/%Y %H:%M') if empresa.data_diagnostico else 'N/A' }}
+                            </small>
+                        </td>
+                        <td>
+                            <div>
+                                <strong>{{ empresa.razao_social or 'N/A' }}</strong>
+                                {% if empresa.nome_fantasia and empresa.nome_fantasia != empresa.razao_social %}
+                                <br><small class="text-muted">{{ empresa.nome_fantasia }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <code class="small">{{ empresa.cnpj or 'N/A' }}</code>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <strong>{{ empresa.rh_responsavel or 'N/A' }}</strong>
+                                <br>{{ empresa.cargo_rh or '' }}
+                                {% if empresa.email %}
+                                <br><a href="mailto:{{ empresa.email }}" class="text-primary">
+                                    <i class="fas fa-envelope fa-sm me-1"></i>{{ empresa.email }}
+                                </a>
+                                {% endif %}
+                                {% if empresa.whatsapp %}
+                                <br><a href="https://wa.me/{{ empresa.whatsapp.replace('(', '').replace(')', '').replace('-', '').replace(' ', '') }}" 
+                                       class="text-success" target="_blank">
+                                    <i class="fab fa-whatsapp fa-sm me-1"></i>{{ empresa.whatsapp }}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ empresa.num_colaboradores or 'N/A' }}</span>
+                        </td>
+                        <td>
+                            {% if empresa.nivel_risco == 'Alto' %}
+                                <span class="badge badge-risco-alto">{{ empresa.nivel_risco }}</span>
+                            {% elif empresa.nivel_risco == 'Moderado' %}
+                                <span class="badge badge-risco-moderado">{{ empresa.nivel_risco }}</span>
+                            {% else %}
+                                <span class="badge badge-risco-baixo">{{ empresa.nivel_risco or 'Baixo' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">1</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary btn-sm" 
+                                        onclick="verDetalhes('{{ empresa.cnpj }}')"
+                                        title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm"
+                                        onclick="exportarPDF('{{ empresa.cnpj }}')"
+                                        title="Exportar PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Paginação (se necessário) -->
+<nav aria-label="Navegação de páginas" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page - 1 }}{% if search %}&search={{ search }}{% endif %}">
+                <i class="fas fa-chevron-left"></i> Anterior
+            </a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">{{ page }}</span>
+        </li>
+        
+        {% if empresas|length == 20 %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page + 1 }}{% if search %}&search={{ search }}{% endif %}">
+                Próxima <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% else %}
+<div class="card stat-card">
+    <div class="card-body text-center py-5">
+        {% if search %}
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Nenhuma empresa encontrada</h5>
+        <p class="text-muted mb-3">Não foram encontradas empresas com os termos "{{ search }}"</p>
+        <a href="{{ url_for('admin_empresas') }}" class="btn btn-outline-primary">
+            <i class="fas fa-times me-2"></i>Limpar Busca
+        </a>
+        {% else %}
+        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Nenhuma empresa cadastrada</h5>
+        <p class="text-muted mb-0">As empresas aparecerão aqui quando realizarem diagnósticos</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de Detalhes -->
+<div class="modal fade" id="detalhesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes da Empresa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalhesContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verDetalhes(cnpj) {
+    $('#detalhesModal').modal('show');
+    
+    // Aqui você pode fazer uma requisição AJAX para buscar os detalhes
+    $('#detalhesContent').html(`
+        <div class="text-center">
+            <i class="fas fa-info-circle fa-3x text-primary mb-3"></i>
+            <h5>Funcionalidade em Desenvolvimento</h5>
+            <p class="text-muted">Em breve você poderá visualizar todos os detalhes da empresa ${cnpj}</p>
+        </div>
+    `);
+}
+
+function exportarPDF(cnpj) {
+    // Implementar exportação de PDF
+    alert('Funcionalidade de exportação em desenvolvimento para CNPJ: ' + cnpj);
+}
+
+$(document).ready(function() {
+    // Auto-dismiss alerts
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+});
+</script>
+{% endblock %}

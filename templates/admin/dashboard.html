@@ -1,0 +1,266 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold mb-0">Dashboard Executivo</h2>
+        <p class="text-muted">Visão geral dos diagnósticos realizados</p>
+    </div>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon me-3" style="background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-1">{{ stats.total_empresas or 0 }}</h3>
+                    <p class="text-muted mb-0 small">Empresas Atendidas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon me-3" style="background: linear-gradient(45deg, var(--success-color), #20c997);">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-1">{{ stats.total_diagnosticos or 0 }}</h3>
+                    <p class="text-muted mb-0 small">Diagnósticos Realizados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon me-3" style="background: linear-gradient(45deg, var(--accent-color), #f4a261);">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-1">{{ '{:,}'.format(stats.total_colaboradores_analisados or 0).replace(',', '.') }}</h3>
+                    <p class="text-muted mb-0 small">Colaboradores Analisados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon me-3" style="background: linear-gradient(45deg, var(--warning-color), #e63946);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-1">{{ stats.diagnosticos_risco_alto or 0 }}</h3>
+                    <p class="text-muted mb-0 small">Alto Risco</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold mb-3">
+                    <i class="fas fa-chart-pie me-2 text-primary"></i>
+                    Distribuição por Nível de Risco
+                </h5>
+                <canvas id="riskChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold mb-3">
+                    <i class="fas fa-chart-bar me-2 text-primary"></i>
+                    Diagnósticos por Mês
+                </h5>
+                <canvas id="monthChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diagnósticos Recentes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title fw-bold mb-0">
+                        <i class="fas fa-clock me-2 text-primary"></i>
+                        Diagnósticos Recentes
+                    </h5>
+                    <a href="{{ url_for('admin_empresas') }}" class="btn btn-outline-primary">
+                        Ver Todos <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                
+                {% if recent_diagnosticos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Empresa</th>
+                                <th>CNPJ</th>
+                                <th>Responsável RH</th>
+                                <th>Colaboradores</th>
+                                <th>Nível de Risco</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for diagnostico in recent_diagnosticos %}
+                            <tr>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ diagnostico.data_diagnostico.strftime('%d/%m/%Y %H:%M') if diagnostico.data_diagnostico else 'N/A' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <strong>{{ diagnostico.razao_social or 'N/A' }}</strong>
+                                    {% if diagnostico.nome_fantasia %}
+                                    <br><small class="text-muted">{{ diagnostico.nome_fantasia }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <code class="small">{{ diagnostico.cnpj or 'N/A' }}</code>
+                                </td>
+                                <td>
+                                    {{ diagnostico.rh_responsavel or 'N/A' }}
+                                    <br><small class="text-muted">{{ diagnostico.cargo_rh or '' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ diagnostico.num_colaboradores or 'N/A' }}</span>
+                                </td>
+                                <td>
+                                    {% if diagnostico.nivel_risco == 'Alto' %}
+                                        <span class="badge badge-risco-alto">{{ diagnostico.nivel_risco }}</span>
+                                    {% elif diagnostico.nivel_risco == 'Moderado' %}
+                                        <span class="badge badge-risco-moderado">{{ diagnostico.nivel_risco }}</span>
+                                    {% else %}
+                                        <span class="badge badge-risco-baixo">{{ diagnostico.nivel_risco or 'Baixo' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-primary" 
+                                       title="Ver Detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum diagnóstico realizado ainda</h5>
+                    <p class="text-muted mb-0">Os diagnósticos aparecerão aqui quando forem realizados</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Dados para os gráficos
+const riskData = {
+    labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
+    datasets: [{
+        data: [
+            {{ stats.diagnosticos_risco_alto or 0 }}, 
+            {{ stats.diagnosticos_risco_moderado or 0 }}, 
+            {{ stats.diagnosticos_risco_baixo or 0 }}
+        ],
+        backgroundColor: [
+            'rgba(231, 111, 81, 0.8)',
+            'rgba(244, 162, 97, 0.8)',
+            'rgba(42, 157, 143, 0.8)'
+        ],
+        borderColor: [
+            'rgba(231, 111, 81, 1)',
+            'rgba(244, 162, 97, 1)',
+            'rgba(42, 157, 143, 1)'
+        ],
+        borderWidth: 2
+    }]
+};
+
+// Configuração do gráfico de pizza
+const riskConfig = {
+    type: 'doughnut',
+    data: riskData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+};
+
+// Dados mockados para o gráfico mensal (você pode implementar dados reais)
+const monthData = {
+    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+    datasets: [{
+        label: 'Diagnósticos',
+        data: [12, 19, 8, 15, 10, 25],
+        backgroundColor: 'rgba(19, 14, 84, 0.2)',
+        borderColor: 'rgba(19, 14, 84, 1)',
+        borderWidth: 2,
+        fill: true
+    }]
+};
+
+const monthConfig = {
+    type: 'line',
+    data: monthData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+};
+
+// Inicializar gráficos
+window.addEventListener('DOMContentLoaded', function() {
+    const riskCtx = document.getElementById('riskChart').getContext('2d');
+    new Chart(riskCtx, riskConfig);
+    
+    const monthCtx = document.getElementById('monthChart').getContext('2d');
+    new Chart(monthCtx, monthConfig);
+    
+    // Auto-dismiss alerts
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+});
+</script>
+{% endblock %}
