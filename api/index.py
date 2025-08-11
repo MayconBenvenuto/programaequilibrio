@@ -20,15 +20,12 @@ try:
     from main import app
     print("✅ [VERCEL] Aplicação importada com sucesso do main.py")
     
-    # Configurar caminhos para arquivos estáticos na Vercel
-    app.static_folder = os.path.join(root_dir, 'static')
-    app.template_folder = os.path.join(root_dir, 'templates')
-    
+    # Verificar configurações existentes (não modificar)
     print(f"📁 [VERCEL] Static folder: {app.static_folder}")
     print(f"📁 [VERCEL] Template folder: {app.template_folder}")
     
     # Verificar se as pastas existem
-    if os.path.exists(app.static_folder):
+    if os.path.exists(app.static_folder) if app.static_folder else False:
         print("✅ [VERCEL] Pasta static encontrada")
         static_files = []
         for root, dirs, files in os.walk(app.static_folder):
@@ -37,12 +34,12 @@ try:
                 static_files.append(rel_path)
         print(f"📋 [VERCEL] Arquivos estáticos encontrados: {static_files[:10]}{'...' if len(static_files) > 10 else ''}")
     else:
-        print(f"⚠️ [VERCEL] Pasta static não encontrada em: {app.static_folder}")
+        print(f"⚠️ [VERCEL] Pasta static não encontrada ou não configurada")
     
-    if os.path.exists(app.template_folder):
+    if os.path.exists(app.template_folder) if app.template_folder else False:
         print("✅ [VERCEL] Pasta templates encontrada")
     else:
-        print(f"⚠️ [VERCEL] Pasta templates não encontrada em: {app.template_folder}")
+        print(f"⚠️ [VERCEL] Pasta templates não encontrada ou não configurada")
     
     # Testar configurações básicas
     print(f"🔧 [VERCEL] Secret key configurado: {bool(app.secret_key)}")
