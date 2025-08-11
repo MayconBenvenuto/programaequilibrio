@@ -253,28 +253,34 @@ function finalizarQuestionario() {
 
 // Event listeners para as opções
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 [QUESTIONARIO] DOM carregado, iniciando validação...');
+    
     // Carregar dados da empresa do sessionStorage
     const dadosEmpresaStorage = sessionStorage.getItem('dadosEmpresa');
+    console.log('📦 [QUESTIONARIO] SessionStorage raw:', dadosEmpresaStorage);
     
     if (dadosEmpresaStorage) {
         try {
             const dadosCarregados = JSON.parse(dadosEmpresaStorage);
             
             // DEBUG: Mostrar dados carregados
-            console.log('Dados do sessionStorage:', dadosCarregados);
-            console.log('cnpj_validado:', dadosCarregados.cnpj_validado);
-            console.log('dados_receita:', dadosCarregados.dados_receita);
-            console.log('cnpj:', dadosCarregados.cnpj);
+            console.log('📋 [QUESTIONARIO] Dados do sessionStorage parsed:', dadosCarregados);
+            console.log('📋 [QUESTIONARIO] cnpj_validado:', dadosCarregados.cnpj_validado);
+            console.log('📋 [QUESTIONARIO] dados_receita:', dadosCarregados.dados_receita);
+            console.log('📋 [QUESTIONARIO] cnpj:', dadosCarregados.cnpj);
             
             // Verificar se CNPJ existe nos dados (mais flexível)
             const temCNPJ = dadosCarregados.cnpj || (dadosCarregados.dados_receita && dadosCarregados.dados_receita.cnpj);
             const cnpjValidado = dadosCarregados.cnpj_validado === true;
             
-            console.log('temCNPJ:', temCNPJ);
-            console.log('cnpjValidado:', cnpjValidado);
+            console.log('🔍 [QUESTIONARIO] temCNPJ:', temCNPJ);
+            console.log('🔍 [QUESTIONARIO] cnpjValidado:', cnpjValidado);
+            console.log('🔍 [QUESTIONARIO] Condição final:', temCNPJ && (cnpjValidado || dadosCarregados.dados_receita));
             
             // Permitir prosseguir se tem CNPJ válido, mesmo sem todos os dados da Receita
             if (temCNPJ && (cnpjValidado || dadosCarregados.dados_receita)) {
+                console.log('✅ [QUESTIONARIO] Validação passou - prosseguindo...');
+                
                 // Usar dados da página inicial
                 dadosEmpresa = dadosCarregados;
                 
@@ -329,24 +335,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Dados carregados da página inicial:', dadosEmpresa);
             } else {
                 // CNPJ inválido ou dados insuficientes
-                console.log('Dados insuficientes para prosseguir:');
+                console.log('❌ [QUESTIONARIO] Dados insuficientes para prosseguir:');
                 console.log('- temCNPJ:', temCNPJ);
                 console.log('- cnpjValidado:', cnpjValidado);
                 console.log('- dados_receita:', !!dadosCarregados.dados_receita);
+                console.log('- Condição falhou em:', {
+                    temCNPJ: temCNPJ,
+                    condicaoValidacao: cnpjValidado || dadosCarregados.dados_receita,
+                    cnpjValidado: cnpjValidado,
+                    temDadosReceita: !!dadosCarregados.dados_receita
+                });
                 
                 alert('CNPJ inválido ou não encontrado. Por favor, verifique o CNPJ e tente novamente.');
                 window.location.href = '/';
                 return;
             }
         } catch (error) {
-            console.error('Erro ao carregar dados do sessionStorage:', error);
-            console.log('Dados do sessionStorage que causaram erro:', dadosEmpresaStorage);
+            console.error('❌ [QUESTIONARIO] Erro ao carregar dados do sessionStorage:', error);
+            console.log('❌ [QUESTIONARIO] Dados que causaram erro:', dadosEmpresaStorage);
             
             alert('Erro ao processar dados da empresa. Por favor, refaça o processo.');
             window.location.href = '/';
             return;
         }
     } else {
+        console.log('❌ [QUESTIONARIO] SessionStorage vazio');
         alert('Por favor, preencha os dados da empresa primeiro.');
         window.location.href = '/';
         return;

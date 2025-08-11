@@ -309,9 +309,14 @@ document.getElementById('formDadosEmpresa').addEventListener('submit', function(
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Resposta da API:', data);
+        console.log('📋 [FRONTEND] Resposta completa da API:', data);
+        console.log('📋 [FRONTEND] data.valid:', data.valid, typeof data.valid);
+        console.log('📋 [FRONTEND] data.cnpj_validado:', data.cnpj_validado, typeof data.cnpj_validado);
+        console.log('📋 [FRONTEND] data.dados_empresa:', !!data.dados_empresa);
         
         if (data.valid) {
+            console.log('✅ [FRONTEND] CNPJ válido - processando dados...');
+            
             // CNPJ válido - coletar dados do formulário
             cnpjInput.classList.add('is-valid');
             cnpjInput.classList.remove('is-invalid');
@@ -323,8 +328,11 @@ document.getElementById('formDadosEmpresa').addEventListener('submit', function(
                 dadosEmpresa[key] = value;
             }
             
+            console.log('📋 [FRONTEND] Dados do formulário coletados:', dadosEmpresa);
+            
             // Validar WhatsApp
             if (!validateWhatsApp(dadosEmpresa.whatsapp)) {
+                console.log('❌ [FRONTEND] WhatsApp inválido:', dadosEmpresa.whatsapp);
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
                 alert('Por favor, insira um número de WhatsApp válido com pelo menos 10 dígitos.');
@@ -332,21 +340,32 @@ document.getElementById('formDadosEmpresa').addEventListener('submit', function(
                 return;
             }
             
+            console.log('✅ [FRONTEND] WhatsApp válido:', dadosEmpresa.whatsapp);
+            
             // Adicionar dados da API se disponível
             if (data.dados_empresa) {
+                console.log('📋 [FRONTEND] Adicionando dados da empresa da API');
                 dadosEmpresa.dados_receita = data.dados_empresa;
+            } else {
+                console.log('⚠️ [FRONTEND] Sem dados da empresa da API');
             }
             dadosEmpresa.cnpj_validado = true;
+            
+            console.log('📋 [FRONTEND] Dados finais para sessionStorage:', dadosEmpresa);
             
             // Salvar dados no sessionStorage
             sessionStorage.setItem('dadosEmpresa', JSON.stringify(dadosEmpresa));
             
-            console.log('Dados salvos no sessionStorage:', dadosEmpresa);
+            console.log('💾 [FRONTEND] Dados salvos no sessionStorage');
+            console.log('💾 [FRONTEND] Verificando dados salvos:', JSON.parse(sessionStorage.getItem('dadosEmpresa')));
             
             // Redirecionar para o questionário
+            console.log('🔄 [FRONTEND] Redirecionando para /questionario');
             window.location.href = '/questionario';
             
         } else {
+            console.log('❌ [FRONTEND] CNPJ inválido ou erro na validação');
+            console.log('❌ [FRONTEND] Mensagem de erro:', data.message);
             // CNPJ inválido ou empresa inativa
             cnpjInput.classList.add('is-invalid');
             cnpjInput.classList.remove('is-valid');
