@@ -81,22 +81,16 @@ def test_insert_operation():
         # Dados de teste
         test_empresa = {
             "cnpj": "11111111000191",
-            "nome": "Empresa Teste",
-            "fantasia": "Teste Ltda",
-            "situacao": "ATIVA",
-            "tipo": "MATRIZ",
-            "porte": "MICRO",
-            "natureza_juridica": "Sociedade Empresária Limitada",
-            "atividade_principal": "Atividades de teste",
-            "capital_social": "10000.00",
-            "endereco": "Rua Teste, 123",
-            "bairro": "Centro",
-            "cidade": "São Paulo",
-            "uf": "SP",
-            "cep": "01000-000",
-            "telefone": "(11) 99999-9999",
+            "razao_social": "Empresa Teste",
+            "nome_fantasia": "Teste Ltda",
             "email": "teste@teste.com",
-            "whatsapp": "(11) 99999-9999"
+            "telefone": "(11) 99999-9999",
+            "whatsapp": "(11) 99999-9999",
+            "endereco": {"logradouro": "Rua Teste, 123", "cidade": "São Paulo"},
+            "num_colaboradores": 50,
+            "setor_atividade": "Tecnologia",
+            "rh_responsavel": "João Silva",
+            "cargo_rh": "Gerente de RH"
         }
         
         # Primeiro, remove registro de teste se existir
@@ -112,18 +106,29 @@ def test_insert_operation():
             # Agora testa inserir um diagnóstico
             test_diagnostico = {
                 "empresa_id": empresa_id,
-                "pergunta_1": 5,
-                "pergunta_2": 4,
-                "pergunta_3": 3,
-                "pergunta_4": 5,
-                "pergunta_5": 4,
-                "pergunta_6": 3,
-                "pergunta_7": 5,
-                "pergunta_8": 4,
-                "pergunta_9": 3,
-                "pergunta_10": 5,
-                "pontuacao_total": 41,
-                "nivel": "Intermediário"
+                "respostas": {
+                    "pergunta_1": 5,
+                    "pergunta_2": 4,
+                    "pergunta_3": 3,
+                    "pergunta_4": 5,
+                    "pergunta_5": 4,
+                    "pergunta_6": 3,
+                    "pergunta_7": 5,
+                    "pergunta_8": 4,
+                    "pergunta_9": 3,
+                    "pergunta_10": 5
+                },
+                "analise": {
+                    "pontuacao_total": 41,
+                    "nivel_risco": "Intermediário",
+                    "areas_foco": ["Saúde Mental", "Ergonomia"],
+                    "questoes_criticas": 2,
+                    "acoes_recomendadas": ["Treinamento", "Avaliação"]
+                },
+                "nivel_risco": "Intermediário",
+                "questoes_criticas": 2,
+                "areas_foco": ["Saúde Mental", "Ergonomia"],
+                "acoes_recomendadas": ["Treinamento", "Avaliação"]
             }
             
             diag_response = supabase.table('diagnosticos').insert(test_diagnostico).execute()
@@ -184,7 +189,7 @@ def test_admin_authentication():
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         
-        response = supabase.table('admin_users').select('email, ativo').eq('ativo', True).execute()
+        response = supabase.table('admin_users').select('email, is_active').eq('is_active', True).execute()
         
         if response.data:
             active_admins = len(response.data)
