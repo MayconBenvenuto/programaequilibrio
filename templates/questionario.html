@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Questionário - Programa Equilíbrio{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Progress Bar -->
+            <div class="mb-4">
+                <div class="progress shadow-sm" style="height: 12px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: 10%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));" id="progressBar"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-2">
+                    <small class="text-muted fw-bold">Questão <span id="questaoAtual">1</span> de {{ perguntas|length }}</small>
+                    <small class="text-muted fw-bold"><span id="porcentagem">10</span>% concluído</small>
+                </div>
+            </div>
+
+            <!-- Questionário -->
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <form id="formQuestionario">
+                        {% for pergunta in perguntas %}
+                        <div class="pergunta-container" data-pergunta="{{ pergunta.id }}" 
+                             {% if pergunta.id != 1 %}style="display: none;"{% endif %}>
+                            
+                            <div class="mb-4">
+                                <h4 class="fw-bold mb-3" style="color: var(--primary-color);">{{ pergunta.titulo }}</h4>
+                                <p class="text-muted fst-italic">
+                                    <i class="fas fa-target me-2" style="color: var(--secondary-color);"></i>
+                                    {{ pergunta.objetivo }}
+                                </p>
+                            </div>
+
+                            <div class="opcoes-container">
+                                {% for opcao in pergunta.opcoes %}
+                                <div class="opcao-item mb-3">
+                                    <input type="radio" class="btn-check" 
+                                           name="pergunta_{{ pergunta.id }}" 
+                                           value="{{ opcao.valor }}" 
+                                           id="opcao_{{ pergunta.id }}_{{ opcao.valor }}"
+                                           autocomplete="off">
+                                    <label class="btn btn-outline-primary btn-lg w-100 text-start p-3" 
+                                           for="opcao_{{ pergunta.id }}_{{ opcao.valor }}">
+                                        {{ opcao.texto }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="navegacao-container d-flex justify-content-between mt-4">
+                                {% if pergunta.id > 1 %}
+                                <button type="button" class="btn btn-secondary" onclick="voltarPergunta()">
+                                    <i class="fas fa-arrow-left me-2"></i>← Anterior
+                                </button>
+                                {% else %}
+                                <div></div>
+                                {% endif %}
+
+                                {% if pergunta.id < perguntas|length %}
+                                <button type="button" class="btn btn-primary" onclick="proximaPergunta()" disabled>
+                                    Próxima →<i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-success btn-lg" onclick="finalizarQuestionario()" disabled>
+                                    <i class="fas fa-check me-2"></i>Finalizar Diagnóstico
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
+
+            <!-- Loading Modal -->
+            <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-body text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <h5>Processando seu diagnóstico...</h5>
+                            <p class="text-muted">Analisando as respostas e gerando recomendações personalizadas.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configurações do questionário
+let perguntaAtual = 1;
+const totalPerguntas = parseInt('{{ perguntas|length }}');
+const respostas = {};
+
+// Carregar dados da empresa do sessionStorage  
+const dadosEmpresa = JSON.parse(sessionStorage.getItem('dadosEmpresa') || '{}');
+
+// Função para atualizar a barra de progresso
+function atualizarProgresso() {
+    const porcentagem = Math.round((perguntaAtual / totalPerguntas) * 100);
+    document.getElementById('progressBar').style.width = porcentagem + '%';
+    document.getElementById('questaoAtual').textContent = perguntaAtual;
+    document.getElementById('porcentagem').textContent = porcentagem;
+}
+
+// Função para verificar se a pergunta atual foi respondida
+function verificarResposta() {
+    const opcaoSelecionada = document.querySelector('input[name="pergunta_' + perguntaAtual + '"]:checked');
+    const botaoProximo = document.querySelector('.pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-primary, .pergunta-container[data-pergunta="' + perguntaAtual + '"] .btn-success');
+    
+    if (opcaoSelecionada) {
+        respostas[perguntaAtual] = opcaoSelecionada.value;
+        if (botaoProximo) {
+            botaoProximo.disabled = false;
+        }
+    } else {
+        if (botaoProximo) {
+            botaoProximo.disabled = true;
+        }
+    }
+}
+
+// Função para ir para a próxima pergunta
+function proximaPergunta() {
+    if (perguntaAtual < totalPerguntas) {
+        // Esconder pergunta atual
+        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'none';
+        
+        perguntaAtual++;
+        
+        // Mostrar próxima pergunta
+        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'block';
+        
+        atualizarProgresso();
+        verificarResposta();
+    }
+}
+
+// Função para voltar para a pergunta anterior
+function voltarPergunta() {
+    if (perguntaAtual > 1) {
+        // Esconder pergunta atual
+        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'none';
+        
+        perguntaAtual--;
+        
+        // Mostrar pergunta anterior
+        document.querySelector(`[data-pergunta="${perguntaAtual}"]`).style.display = 'block';
+        
+        atualizarProgresso();
+        verificarResposta();
+    }
+}
+
+// Função para finalizar o questionário
+function finalizarQuestionario() {
+    // Mostrar modal de carregamento
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    // Preparar dados para envio
+    const dadosCompletos = {
+        dados_empresa: dadosEmpresa,
+        respostas: respostas,
+        data_preenchimento: new Date().toISOString()
+    };
+    
+    // Enviar dados para o servidor
+    fetch('/processar_questionario', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosCompletos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            window.location.href = data.redirect;
+        } else {
+            alert('Erro ao processar questionário: ' + data.message);
+            loadingModal.hide();
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar questionário. Tente novamente.');
+        loadingModal.hide();
+    });
+}
+
+// Event listeners para as opções
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar listeners para todas as opções
+    const opcoes = document.querySelectorAll('input[type="radio"]');
+    opcoes.forEach(opcao => {
+        opcao.addEventListener('change', verificarResposta);
+    });
+    
+    // Verificar se há dados da empresa
+    if (Object.keys(dadosEmpresa).length === 0) {
+        alert('Por favor, preencha os dados da empresa primeiro.');
+        window.location.href = '/';
+    }
+});
+
+// Inicializar
+atualizarProgresso();
+</script>
+{% endblock %}

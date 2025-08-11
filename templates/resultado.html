@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado do Diagnóstico - Programa Equilíbrio{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header do Resultado -->
+    <div class="row mb-5">
+        <div class="col">
+            <div class="card text-white border-0 shadow-lg bg-gradient-primary">
+                <div class="card-body text-center py-5">
+                    <div class="d-flex justify-content-center align-items-center mb-4">
+                        <img src="{{ url_for('static', filename='images/logo-conecta.png') }}" 
+                             alt="Belz Conecta Saúde" 
+                             height="50" 
+                             class="me-3">
+                        <div class="text-start">
+                            <h1 class="display-6 fw-bold mb-0">Diagnóstico Concluído</h1>
+                            <p class="lead mb-0 opacity-75">Programa Equilíbrio</p>
+                        </div>
+                    </div>
+                    <p class="lead">Resultado completo da avaliação corporativa</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dados da Empresa -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        📋 Dados da Empresa
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Empresa:</strong> {{ dados.dados_empresa.razao_social or 'N/A' }}</p>
+                            <p><strong>CNPJ:</strong> {{ dados.dados_empresa.cnpj or 'N/A' }}</p>
+                            <p><strong>RH Responsável:</strong> {{ dados.dados_empresa.rh_responsavel or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cargo:</strong> {{ dados.dados_empresa.cargo or 'N/A' }}</p>
+                            <p><strong>E-mail:</strong> {{ dados.dados_empresa.email or 'N/A' }}</p>
+                            <p><strong>Colaboradores:</strong> {{ dados.dados_empresa.num_colaboradores or 'N/A' }}</p>
+                        </div>
+                    </div>
+                    <p><strong>Data do Diagnóstico:</strong> {{ analise.data_diagnostico }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo do Diagnóstico -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-danger h-100 shadow-sm border-0">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h1 class="display-2 fw-bold counter-animation">{{ analise.questoes_criticas }}</h1>
+                    <h5 class="mb-0">Questões Críticas</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white h-100 shadow-sm border-0 bg-gradient-primary">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h1 class="display-2 fw-bold counter-animation">{{ analise.acoes_recomendadas|length }}</h1>
+                    <h5 class="mb-0">Ações Recomendadas</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success h-100 shadow-sm border-0">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h1 class="display-2 fw-bold counter-animation">{{ (analise.acoes_recomendadas|length) * 8 }}</h1>
+                    <h5 class="mb-0">Horas de Treinamento</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recomendações de Ações Primárias -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        🎯 Recomendações de Ações Primárias
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% for acao in analise.acoes_recomendadas %}
+                    <div class="card mb-3 {% if 'Comunicação' in acao %}border-danger{% else %}border-warning{% endif %}">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="card-title fw-bold">{{ acao }}</h5>
+                                    {% if 'Comunicação' in acao %}
+                                    <p class="card-text">
+                                        <strong>Descrição:</strong> Melhoria do clima através de comunicação assertiva, cultura de feedback saudável e liderança empática.
+                                    </p>
+                                    <div class="mb-2">
+                                        <span class="badge bg-primary me-2">Comunicação não violenta</span>
+                                        <span class="badge bg-primary me-2">Segurança psicológica</span>
+                                        <span class="badge bg-primary">Cultura de feedback</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="badge bg-success me-2">Capacitação de líderes</span>
+                                        <span class="badge bg-success me-2">Rodas de conversa</span>
+                                        <span class="badge bg-success">Acesso ao convivência</span>
+                                        <span class="badge bg-success">Campanha interna</span>
+                                    </div>
+                                    <p class="text-muted mb-0">
+                                        <strong>Categoria:</strong> 🧠 Saúde Mental | 
+                                        <strong>Duração:</strong> 5 horas | 
+                                        <strong>Público:</strong> Todos os colaboradores + Lideranças
+                                    </p>
+                                    {% else %}
+                                    <p class="card-text">
+                                        <strong>Descrição:</strong> Análise técnica completa do ambiente de trabalho com laudos e recomendações de melhorias.
+                                    </p>
+                                    <div class="mb-2">
+                                        <span class="badge bg-warning text-dark me-2">Avaliações ergonômicas e laudos técnicos</span>
+                                        <span class="badge bg-warning text-dark me-2">Adaptação de estações</span>
+                                        <span class="badge bg-warning text-dark">Iluminação, ventilação e ruído</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="badge bg-info me-2">Avaliação por técnico credenciado</span>
+                                        <span class="badge bg-info me-2">Laudo técnico detalhado</span>
+                                        <span class="badge bg-info">Plano de melhorias</span>
+                                        <span class="badge bg-info">Integração com CPA-SESMT</span>
+                                    </div>
+                                    <p class="text-muted mb-0">
+                                        <strong>Categoria:</strong> 🔧 Ergonomia | 
+                                        <strong>Duração:</strong> 16 horas | 
+                                        <strong>Público:</strong> RH + Lideranças + SESMT
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if 'Comunicação' in acao %}
+                                    <span class="badge bg-danger fs-6 p-2">Crítico</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark fs-6 p-2">Alto</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plano de Ação Sugerido -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h3 class="mb-4">
+                        <i class="fas fa-calendar-alt me-2" style="color: var(--primary-color);"></i>
+                        📋 Plano de Ação Sugerido
+                    </h3>
+                    
+                    <!-- Ações Imediatas -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="timeline-marker bg-danger me-3"></div>
+                            <h5 class="text-danger mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                🚨 Ações Imediatas (30 dias)
+                            </h5>
+                        </div>
+                        <div class="ms-4 ps-2">
+                            {% for acao in analise.acoes_recomendadas %}
+                            {% if 'Comunicação' in acao %}
+                            <div class="action-item mb-2">
+                                <i class="fas fa-circle text-danger me-2" style="font-size: 6px; vertical-align: middle;"></i>
+                                Programa Equilíbrio: Consultoria Integrada de Saúde Ocupacional
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Ações de Médio Prazo -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="timeline-marker bg-warning me-3"></div>
+                            <h5 class="text-warning mb-0">
+                                <i class="fas fa-clock me-2"></i>
+                                ⚠️ Ações de Médio Prazo (60 dias)
+                            </h5>
+                        </div>
+                        <div class="ms-4 ps-2">
+                            <div class="action-item mb-2">
+                                <i class="fas fa-circle text-warning me-2" style="font-size: 6px; vertical-align: middle;"></i>
+                                Programa: Ginástica Laboral e Pausas Ativas
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ações Contínuas -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="timeline-marker bg-success me-3"></div>
+                            <h5 class="text-success mb-0">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                📊 Ações Contínuas (90+ dias)
+                            </h5>
+                        </div>
+                        <div class="ms-4 ps-2">
+                            <div class="action-item mb-2">
+                                <i class="fas fa-circle text-success me-2" style="font-size: 6px; vertical-align: middle;"></i>
+                                Implementar pesquisas de clima trimestrais
+                            </div>
+                            <div class="action-item mb-2">
+                                <i class="fas fa-circle text-success me-2" style="font-size: 6px; vertical-align: middle;"></i>
+                                Criar programa de saúde ocupacional permanente
+                            </div>
+                            <div class="action-item mb-2">
+                                <i class="fas fa-circle text-success me-2" style="font-size: 6px; vertical-align: middle;"></i>
+                                Estabelecer indicadores de bem-estar
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row">
+        <div class="col text-center">
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{{ url_for('gerar_pdf') }}" class="btn btn-primary btn-lg px-4 py-3 shadow-sm">
+                    <i class="fas fa-file-pdf me-2"></i>
+                    📄 Exportar Relatório Completo
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg px-4 py-3 shadow-sm">
+                    <i class="fas fa-redo me-2"></i>
+                    🔄 Fazer Novamente
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Função para exportar PDF
+function exportarPDF() {
+    window.location.href = '/gerar_pdf';
+}
+
+// Animações para os cards
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate counters
+    const counters = document.querySelectorAll('.display-2');
+    counters.forEach(counter => {
+        const target = parseInt(counter.textContent);
+        let current = 0;
+        const increment = target / 20;
+        
+        const updateCounter = () => {
+            if (current < target) {
+                current += increment;
+                counter.textContent = Math.ceil(current);
+                setTimeout(updateCounter, 50);
+            } else {
+                counter.textContent = target;
+            }
+        };
+        
+        updateCounter();
+    });
+});
+</script>
+{% endblock %}
