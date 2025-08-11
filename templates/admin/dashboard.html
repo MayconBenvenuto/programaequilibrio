@@ -184,14 +184,15 @@
 
 {% block scripts %}
 <script>
+/* global Chart */
 // Dados para os gráficos
 const riskData = {
     labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
     datasets: [{
         data: [
-            {{ stats.diagnosticos_risco_alto or 0 }}, 
-            {{ stats.diagnosticos_risco_moderado or 0 }}, 
-            {{ stats.diagnosticos_risco_baixo or 0 }}
+            parseInt('{{ stats.diagnosticos_risco_alto or 0 }}', 10), 
+            parseInt('{{ stats.diagnosticos_risco_moderado or 0 }}', 10), 
+            parseInt('{{ stats.diagnosticos_risco_baixo or 0 }}', 10)
         ],
         backgroundColor: [
             'rgba(231, 111, 81, 0.8)',

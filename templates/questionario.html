@@ -190,9 +190,10 @@
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 <script>
+/* global $ */
 // Configurações do questionário
 let etapaAtual = 0;
-let totalEtapas = {{ perguntas|length + 1 }};
+let totalEtapas = parseInt('{{ perguntas|length + 1 }}', 10);
 let dadosEmpresa = {};
 let respostas = {};
 

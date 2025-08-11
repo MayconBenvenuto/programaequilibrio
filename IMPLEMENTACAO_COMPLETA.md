@@ -13,18 +13,21 @@ O Sistema de Diagnóstico Corporativo do Programa Equilíbrio é uma aplicação
 ## 🚀 Funcionalidades Implementadas
 
 ### 1. Validação de CNPJ e Dados Empresariais
+
 - Validação de formato usando `validate-docbr`
 - Consulta automática na API ReceitaWS
 - Verificação de situação da empresa (apenas empresas ativas)
 - Preenchimento automático de dados cadastrais
 
 ### 2. Formulário Aprimorado
+
 - Campo obrigatório para WhatsApp
 - Validação em tempo real
 - Máscaras para campos de entrada
 - Interface responsiva e intuitiva
 
 ### 3. Banco de Dados Supabase
+
 - Estrutura completa de tabelas
 - Relacionamentos otimizados
 - Views para relatórios
@@ -32,6 +35,7 @@ O Sistema de Diagnóstico Corporativo do Programa Equilíbrio é uma aplicação
 - Políticas de segurança (RLS)
 
 ### 4. Painel Administrativo
+
 - Dashboard com estatísticas em tempo real
 - Listagem de empresas cadastradas
 - Filtros e busca avançada
@@ -108,6 +112,7 @@ python main.py
 ## 🔐 Sistema de Administração
 
 ### Acesso Padrão
+
 - **URL**: `/admin/login`
 - **Usuário**: `admin`
 - **Senha**: `admin123`
@@ -148,6 +153,7 @@ python main.py
 ## 📊 Fluxo de Uso
 
 ### Para Empresas
+
 1. Acesso ao questionário
 2. Inserção e validação do CNPJ
 3. Preenchimento automático dos dados
@@ -156,6 +162,7 @@ python main.py
 6. Receber diagnóstico e PDF
 
 ### Para Administradores
+
 1. Login no painel administrativo
 2. Visualizar dashboard com estatísticas
 3. Gerenciar empresas cadastradas
@@ -165,17 +172,20 @@ python main.py
 ## 🔧 Manutenção e Suporte
 
 ### Logs e Monitoramento
+
 - Logs de validação de CNPJ
 - Histórico de diagnósticos
 - Métricas de uso do sistema
 - Alertas de tentativas de fraude
 
 ### Backup e Recuperação
+
 - Backup automático no Supabase
 - Exportação periódica de dados
 - Plano de recuperação de desastres
 
 ### Atualizações
+
 - Sistema versionado
 - Deploy automatizado via Vercel
 - Rollback automático em caso de falhas
@@ -206,13 +216,14 @@ python main.py
 
 ## 📞 Contato e Suporte
 
-- **Email**: admin@belzconectasaude.com.br
+- **Email**: <admin@belzconectasaude.com.br>
 - **Desenvolvedor**: Maycon Benvenuto
 - **Sistema**: Programa Equilíbrio - Belz Conecta Saúde
 
 ---
 
-**⚠️ IMPORTANTE**: 
+**⚠️ IMPORTANTE**:
+
 - Altere a senha padrão do admin em produção
 - Configure corretamente as variáveis de ambiente
 - Execute o script SQL no Supabase antes do primeiro uso
