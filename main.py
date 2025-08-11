@@ -136,10 +136,12 @@ def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
             # Atualizar dados da empresa se necessário
             supabase.table('empresas').update({
                 'rh_responsavel': dados_empresa['rh_responsavel'],
-                'cargo_rh': dados_empresa['cargo'],
-                'email': dados_empresa['email'],
+                'cargo_rh': dados_empresa.get('cargo', ''),
+                'email': dados_empresa.get('email', ''),
                 'whatsapp': dados_empresa.get('whatsapp', ''),
-                'num_colaboradores': dados_empresa['num_colaboradores']
+                'num_colaboradores': dados_empresa.get('num_colaboradores', ''),
+                'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
+                'updated_at': 'NOW()'
             }).eq('id', empresa_id).execute()
             
         else:
@@ -153,7 +155,7 @@ def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
                 'whatsapp': dados_empresa.get('whatsapp', ''),
                 'endereco': dados_empresa.get('endereco', {}),
                 'num_colaboradores': dados_empresa['num_colaboradores'],
-                'setor_atividade': dados_empresa.get('atividade_principal', ''),
+                'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
                 'rh_responsavel': dados_empresa['rh_responsavel'],
                 'cargo_rh': dados_empresa['cargo']
             }).execute()
@@ -335,6 +337,15 @@ def questionario():
 def processar_questionario():
     try:
         dados = request.get_json()
+        
+        # Debug: imprimir dados recebidos
+        print("=== DEBUG: Dados recebidos ===")
+        if 'dados_empresa' in dados:
+            empresa = dados['dados_empresa']
+            print(f"WhatsApp recebido: {empresa.get('whatsapp', 'NÃO INFORMADO')}")
+            print(f"Email recebido: {empresa.get('email', 'NÃO INFORMADO')}")
+            print(f"Setor recebido: {empresa.get('setor', 'NÃO INFORMADO')}")
+        print("=============================")
         
         # Validar dados obrigatórios
         if 'dados_empresa' not in dados or 'respostas' not in dados:
