@@ -2,10 +2,9 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
+      "src": "api/teste_basico.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "50mb",
         "runtime": "python3.9"
       }
     }
@@ -13,7 +12,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "api/teste_basico.py"
     }
   ]
 }
