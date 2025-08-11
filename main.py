@@ -87,19 +87,13 @@ app.config['SESSION_COOKIE_SECURE'] = config('SESSION_COOKIE_SECURE', default=is
 app.config['SESSION_COOKIE_HTTPONLY'] = config('SESSION_COOKIE_HTTPONLY', default=True, cast=bool)
 app.config['SESSION_COOKIE_SAMESITE'] = config('SESSION_COOKIE_SAMESITE', default='Lax')
 
-# Configuração de pastas para funcionar tanto localmente quanto na Vercel
-if is_production:
-    # Na Vercel, usar caminhos absolutos
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    app.static_folder = os.path.join(base_dir, 'static')
-    app.template_folder = os.path.join(base_dir, 'templates')
-    app.static_url_path = '/static'
-    print(f"🔧 [PROD] Static folder: {app.static_folder}")
-    print(f"🔧 [PROD] Template folder: {app.template_folder}")
-else:
-    # Local, usar caminhos relativos
-    app.static_folder = 'static'
-    app.template_folder = 'templates'
+# Configuração simples que funciona na Vercel
+app.static_folder = 'static'
+app.template_folder = 'templates'
+
+print(f"🔧 [CONFIG] Is production: {is_production}")
+print(f"🔧 [CONFIG] Static folder: {app.static_folder}")
+print(f"🔧 [CONFIG] Template folder: {app.template_folder}")
 
 # Configuração do Supabase com tratamento robusto
 supabase = None
@@ -863,6 +857,24 @@ def debug_static():
             debug_info['static_files_error'] = str(e)
     
     return jsonify(debug_info)
+
+@app.route('/test/urls')
+def test_urls():
+    """Testa geração de URLs para arquivos estáticos"""
+    from flask import url_for
+    
+    test_urls = {
+        'css_url': url_for('static', filename='css/style.css'),
+        'js_url': url_for('static', filename='js/main.js'),
+        'logo_url': url_for('static', filename='images/logo-conecta.png'),
+        'base_static_url': url_for('static', filename=''),
+        'full_css_url': request.url_root.rstrip('/') + url_for('static', filename='css/style.css'),
+        'request_url_root': request.url_root,
+        'static_folder': app.static_folder,
+        'static_url_path': app.static_url_path
+    }
+    
+    return jsonify(test_urls)
 
 @app.route('/admin')
 @app.route('/admin/dashboard')

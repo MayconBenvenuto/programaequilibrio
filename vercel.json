@@ -4,42 +4,25 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "static/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/static/css/(.*)",
-      "dest": "/static/css/$1",
-      "headers": {
-        "Content-Type": "text/css",
-        "Cache-Control": "s-maxage=31536000"
-      }
-    },
-    {
-      "src": "/static/js/(.*)",
-      "dest": "/static/js/$1",
-      "headers": {
-        "Content-Type": "application/javascript",
-        "Cache-Control": "s-maxage=31536000"
-      }
-    },
-    {
-      "src": "/static/images/(.*)",
-      "dest": "/static/images/$1",
-      "headers": {
-        "Cache-Control": "s-maxage=31536000"
-      }
-    },
-    {
       "src": "/static/(.*)",
-      "dest": "/static/$1",
-      "headers": {
-        "Cache-Control": "s-maxage=31536000"
-      }
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "/api/index.py"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
+  }
 }
