@@ -994,6 +994,36 @@ def admin_debug():
     }
     return jsonify(debug_info)
 
+# Rota de debug para testar estatísticas
+@app.route('/debug/stats')
+def debug_stats():
+    """Debug route para verificar estatísticas do dashboard"""
+    try:
+        if not supabase:
+            return jsonify({'error': 'Supabase não configurado'})
+        
+        # Testar conexão básica
+        empresas = supabase.table('empresas').select('id').limit(1).execute()
+        diagnosticos = supabase.table('diagnosticos').select('id').limit(1).execute()
+        
+        # Testar view
+        stats_result = supabase.table('vw_estatisticas_admin').select('*').execute()
+        
+        return jsonify({
+            'supabase_ok': bool(supabase),
+            'empresas_count': len(empresas.data) if empresas.data else 0,
+            'diagnosticos_count': len(diagnosticos.data) if diagnosticos.data else 0,
+            'view_result_count': len(stats_result.data) if stats_result.data else 0,
+            'view_data': stats_result.data[:2] if stats_result.data else [],
+            'env_vars': {
+                'SUPABASE_URL': bool(os.environ.get('SUPABASE_URL')),
+                'SUPABASE_ANON_KEY': bool(os.environ.get('SUPABASE_ANON_KEY')),
+                'VERCEL': bool(os.environ.get('VERCEL')),
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 # Rota de debug para verificar arquivos estáticos
 @app.route('/debug/static')
 def debug_static():
