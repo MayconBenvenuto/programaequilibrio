@@ -637,7 +637,7 @@ def validar_cnpj_route():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', hide_navbar=True)
 
 @app.route('/questionario')
 def questionario():

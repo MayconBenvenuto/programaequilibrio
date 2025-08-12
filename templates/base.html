@@ -81,7 +81,8 @@
     <meta name="author" content="Belz Conecta Saúde">
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- Navbar (apenas se não for a página home) -->
+    {% if not hide_navbar %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
@@ -100,6 +101,7 @@
             </span>
         </div>
     </nav>
+    {% endif %}
 
     <!-- Main Content -->
     <main>
