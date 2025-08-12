@@ -3,6 +3,30 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
+<!-- CSS específico para gráficos -->
+<style>
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    max-height: 300px;
+    overflow: hidden;
+}
+
+.chart-container canvas {
+    max-width: 100% !important;
+    max-height: 300px !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Forçar tamanho fixo para evitar crescimento infinito */
+#riskChart, #monthChart {
+    max-width: 400px !important;
+    max-height: 300px !important;
+}
+</style>
+
 <div class="row mb-4">
     <div class="col-12">
         <h2 class="fw-bold mb-0">Dashboard Executivo</h2>
@@ -78,7 +102,9 @@
                     <i class="fas fa-chart-pie me-2 text-primary"></i>
                     Distribuição por Nível de Risco
                 </h5>
-                <canvas id="riskChart" width="400" height="200"></canvas>
+                <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -90,7 +116,9 @@
                     <i class="fas fa-chart-bar me-2 text-primary"></i>
                     Diagnósticos por Mês
                 </h5>
-                <canvas id="monthChart" width="400" height="200"></canvas>
+                <div class="chart-container">
+                    <canvas id="monthChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -184,162 +212,141 @@
 
 {% block scripts %}
 <script>
-/* global Chart */
-// Variáveis para armazenar instâncias dos gráficos
-let riskChart = null;
-let monthChart = null;
-
-// Dados para o gráfico de risco
-const riskData = {
-    labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
-    datasets: [{
-        data: [
-            parseInt('{{ stats.diagnosticos_risco_alto or 0 }}', 10), 
-            parseInt('{{ stats.diagnosticos_risco_moderado or 0 }}', 10), 
-            parseInt('{{ stats.diagnosticos_risco_baixo or 0 }}', 10)
-        ],
-        backgroundColor: [
-            'rgba(231, 111, 81, 0.8)',
-            'rgba(244, 162, 97, 0.8)',
-            'rgba(42, 157, 143, 0.8)'
-        ],
-        borderColor: [
-            'rgba(231, 111, 81, 1)',
-            'rgba(244, 162, 97, 1)',
-            'rgba(42, 157, 143, 1)'
-        ],
-        borderWidth: 2
-    }]
-};
-
-// Configuração do gráfico de pizza
-const riskConfig = {
-    type: 'doughnut',
-    data: riskData,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-            }
-        }
+// Aguardar Chart.js carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se Chart.js carregou
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        return;
     }
-};
 
-// Dados reais para o gráfico mensal
-const monthlyDataFromServer = [
-    {% for item in monthly_data %}
-    {
-        mes: '{{ item.mes_nome }}',
-        total: {{ item.total or 0 }}
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-];
+    console.log('📊 Iniciando inicialização dos gráficos...');
 
-// Preparar dados para o Chart.js
-const monthLabels = monthlyDataFromServer.map(item => item.mes);
-const monthValues = monthlyDataFromServer.map(item => item.total);
-
-const monthData = {
-    labels: monthLabels,
-    datasets: [{
-        label: 'Diagnósticos',
-        data: monthValues,
-        backgroundColor: 'rgba(19, 14, 84, 0.2)',
-        borderColor: 'rgba(19, 14, 84, 1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4
-    }]
-};
-
-const monthConfig = {
-    type: 'line',
-    data: monthData,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            intersect: false,
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1,
-                    callback: function(value) {
-                        return Math.floor(value);
+    // GRÁFICO DE RISCO (Pizza)
+    const riskCtx = document.getElementById('riskChart');
+    if (riskCtx) {
+        try {
+            new Chart(riskCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
+                    datasets: [{
+                        data: [
+                            {{ stats.diagnosticos_risco_alto or 0 }}, 
+                            {{ stats.diagnosticos_risco_moderado or 0 }}, 
+                            {{ stats.diagnosticos_risco_baixo or 0 }}
+                        ],
+                        backgroundColor: [
+                            'rgba(231, 111, 81, 0.8)',
+                            'rgba(244, 162, 97, 0.8)',
+                            'rgba(42, 157, 143, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(231, 111, 81, 1)',
+                            'rgba(244, 162, 97, 1)',
+                            'rgba(42, 157, 143, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
                 }
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
-        }
-    }
-};
-
-// Função para destruir gráficos existentes
-function destroyCharts() {
-    if (riskChart) {
-        riskChart.destroy();
-        riskChart = null;
-    }
-    if (monthChart) {
-        monthChart.destroy();
-        monthChart = null;
-    }
-}
-
-// Função para inicializar gráficos
-function initializeCharts() {
-    // Destruir gráficos existentes primeiro
-    destroyCharts();
-    
-    // Verificar se os elementos existem
-    const riskCtx = document.getElementById('riskChart');
-    const monthCtx = document.getElementById('monthChart');
-    
-    if (riskCtx && monthCtx) {
-        try {
-            // Criar gráfico de risco
-            riskChart = new Chart(riskCtx.getContext('2d'), riskConfig);
-            
-            // Criar gráfico mensal
-            monthChart = new Chart(monthCtx.getContext('2d'), monthConfig);
-            
-            console.log('📊 Gráficos inicializados com sucesso');
+            });
+            console.log('✅ Gráfico de risco criado');
         } catch (error) {
-            console.error('❌ Erro ao inicializar gráficos:', error);
+            console.error('❌ Erro no gráfico de risco:', error);
         }
     }
-}
 
-// Inicializar quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', function() {
-    // Aguardar um pouco para garantir que Chart.js carregou
-    setTimeout(initializeCharts, 100);
-    
+    // GRÁFICO MENSAL (Linha) - VERSÃO SIMPLIFICADA
+    const monthCtx = document.getElementById('monthChart');
+    if (monthCtx) {
+        try {
+            // Dados estáticos simples para evitar problemas
+            const monthlyData = [
+                {% if monthly_data and monthly_data|length > 0 %}
+                    {% for item in monthly_data %}
+                        {{ item.total or 0 }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% else %}
+                    0, 0, 0, 0, 0, {{ recent_diagnosticos|length or 0 }}
+                {% endif %}
+            ];
+
+            const monthlyLabels = [
+                {% if monthly_data and monthly_data|length > 0 %}
+                    {% for item in monthly_data %}
+                        '{{ item.mes_nome }}'{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% else %}
+                    'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Ago'
+                {% endif %}
+            ];
+
+            new Chart(monthCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyLabels,
+                    datasets: [{
+                        label: 'Diagnósticos',
+                        data: monthlyData,
+                        backgroundColor: 'rgba(19, 14, 84, 0.2)',
+                        borderColor: 'rgba(19, 14, 84, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: Math.max(...monthlyData) + 2,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ Gráfico mensal criado com dados:', monthlyData);
+        } catch (error) {
+            console.error('❌ Erro no gráfico mensal:', error);
+        }
+    }
+
     // Auto-dismiss alerts
     setTimeout(function() {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {
-            alert.style.transition = 'opacity 0.5s';
-            alert.style.opacity = '0';
-            setTimeout(() => alert.remove(), 500);
+            if (alert) {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 500);
+            }
         });
     }, 5000);
+
+    console.log('📊 Inicialização dos gráficos concluída');
 });
-
-// Limpar gráficos quando a página for descarregada
-window.addEventListener('beforeunload', destroyCharts);
-
-// Debug: mostrar dados no console
-console.log('📊 Dados mensais:', monthlyDataFromServer);
-console.log('📊 Labels:', monthLabels);
-console.log('📊 Values:', monthValues);
 </script>
 {% endblock %}
