@@ -31,6 +31,7 @@
             min-height: 100vh;
             background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
         }
 
         .sidebar .nav-link {
@@ -39,6 +40,7 @@
             margin: 5px 0;
             border-radius: 8px;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
 
         .sidebar .nav-link:hover,
@@ -46,6 +48,112 @@
             color: white;
             background-color: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
+        }
+
+        .main-content {
+            padding: 15px;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 767.98px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1040;
+                width: 280px;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.5);
+                z-index: 1039;
+                display: none;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+            }
+            
+            .main-content {
+                padding: 10px;
+            }
+            
+            .navbar-admin {
+                padding: 8px 15px;
+            }
+            
+            .navbar-brand {
+                font-size: 16px !important;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .stat-card .card-body {
+                padding: 15px;
+            }
+            
+            .stat-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+            
+            h3 {
+                font-size: 18px;
+            }
+            
+            .table-responsive {
+                font-size: 12px;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .main-content {
+                padding: 8px;
+            }
+            
+            .navbar-brand {
+                font-size: 14px !important;
+            }
+            
+            .stat-card .card-body {
+                padding: 10px;
+            }
+            
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            h2 {
+                font-size: 18px;
+            }
+            
+            h3 {
+                font-size: 16px;
+            }
         }
 
         .main-content {
@@ -102,17 +210,30 @@
     </style>
 </head>
 <body>
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
     <div class="container-fluid p-0">
         <div class="row g-0">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="p-4">
+            <div class="col-md-3 col-lg-2 sidebar" id="sidebar">
+                <div class="p-3">
+                    <!-- Close button for mobile -->
+                    <div class="d-md-none d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-white fw-bold">Menu</span>
+                        <button type="button" class="btn btn-sm text-white" id="closeSidebar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
                     <div class="d-flex align-items-center mb-4">
-                    <img src="{{ url_for('static', filename='images/logo-conecta.png') }}" 
-                         alt="Belz Conecta Saúde" 
-                         height="60" 
-                         class="me-4">
-                         <br><small class="text-white-50">Programa Equilíbrio</small>
+                        <img src="{{ url_for('static', filename='images/logo-conecta.png') }}" 
+                             alt="Belz Conecta Saúde" 
+                             height="50" 
+                             class="me-3">
+                        <div class="d-none d-lg-block">
+                            <small class="text-white-50">Programa<br>Equilíbrio</small>
+                        </div>
                     </div>
 
                     <nav class="nav flex-column">
@@ -140,10 +261,15 @@
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10">
+            <div class="col-12 col-md-9 col-lg-10">
                 <!-- Top Navbar -->
                 <nav class="navbar navbar-expand-lg navbar-admin">
                     <div class="container-fluid">
+                        <!-- Mobile menu button -->
+                        <button class="btn d-md-none me-2" type="button" id="openSidebar">
+                            <i class="fas fa-bars" style="color: var(--primary-color);"></i>
+                        </button>
+                        
                         <h5 class="navbar-brand mb-0 fw-bold" style="color: var(--primary-color);">
                             {% block page_title %}Painel Administrativo{% endblock %}
                         </h5>
@@ -153,7 +279,7 @@
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
                                    role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-user-circle fa-lg me-2"></i>
-                                    {{ session.admin_user.username if session.admin_user else 'Admin' }}
+                                    <span class="d-none d-sm-inline">{{ session.admin_user.username if session.admin_user else 'Admin' }}</span>
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ url_for('admin_logout') }}">
@@ -190,6 +316,57 @@
     
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Mobile Sidebar Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const openSidebar = document.getElementById('openSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+            
+            // Abrir sidebar
+            if (openSidebar) {
+                openSidebar.addEventListener('click', function() {
+                    sidebar.classList.add('show');
+                    sidebarOverlay.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                });
+            }
+            
+            // Fechar sidebar
+            function closeSidebarMenu() {
+                sidebar.classList.remove('show');
+                sidebarOverlay.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+            
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', closeSidebarMenu);
+            }
+            
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebarMenu);
+            }
+            
+            // Fechar sidebar ao clicar em link (mobile)
+            const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 768) {
+                        setTimeout(closeSidebarMenu, 100);
+                    }
+                });
+            });
+            
+            // Fechar sidebar ao redimensionar para desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    closeSidebarMenu();
+                }
+            });
+        });
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>
