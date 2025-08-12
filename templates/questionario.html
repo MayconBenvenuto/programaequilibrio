@@ -127,25 +127,72 @@
 
 <!-- Fallback para jQuery se CDN falhar -->
 <script>
-if (!window.jQuery) {
-    console.warn('jQuery CDN falhou, carregando fallback...');
-    document.write('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"><\/script>');
+// Aguardar um pouco para o jQuery carregar
+setTimeout(function() {
+    if (!window.jQuery) {
+        console.warn('jQuery CDN falhou, carregando fallback...');
+        
+        // Criar elemento script de forma mais segura
+        var script = document.createElement('script');
+        script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js';
+        script.onload = function() {
+            console.log('jQuery fallback carregado com sucesso');
+            initializeJQueryComponents();
+        };
+        script.onerror = function() {
+            console.error('Falha no carregamento do jQuery fallback');
+        };
+        document.head.appendChild(script);
+    } else {
+        console.log('jQuery CDN carregado com sucesso');
+        initializeJQueryComponents();
+    }
+}, 100);
+
+function initializeJQueryComponents() {
+    // Carregar jQuery Mask se jQuery estiver disponível
+    if (window.jQuery) {
+        loadJQueryMask();
+    }
 }
 </script>
 
-<!-- jQuery Mask depois do jQuery -->
+<!-- jQuery Mask carregado via função -->
 <script>
-// Verificar se jQuery está disponível antes de carregar mask
-if (window.jQuery) {
-    // Carregar jQuery Mask
+function loadJQueryMask() {
+    if (!window.jQuery) {
+        console.warn('jQuery não disponível para carregar Mask');
+        return;
+    }
+    
+    // Verificar se Mask já foi carregado
+    if (window.jQuery.fn.mask) {
+        console.log('jQuery Mask já estava carregado');
+        return;
+    }
+    
+    console.log('Carregando jQuery Mask...');
     var script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js';
+    script.onload = function() {
+        console.log('jQuery Mask carregado com sucesso');
+        // Aplicar máscaras quando carregar
+        setTimeout(applyMasks, 100);
+    };
     script.onerror = function() {
         console.warn('jQuery Mask CDN falhou');
     };
     document.head.appendChild(script);
-} else {
-    console.warn('jQuery não disponível, pulando jQuery Mask');
+}
+
+function applyMasks() {
+    if (window.jQuery && window.jQuery.fn.mask) {
+        // Aplicar máscara CNPJ
+        jQuery('#cnpj').mask('00.000.000/0000-00');
+        // Aplicar máscara telefone/WhatsApp
+        jQuery('input[type="tel"]').mask('(00) 00000-0000');
+        console.log('Máscaras aplicadas com sucesso');
+    }
 }
 </script>
 <script>
@@ -307,6 +354,8 @@ function formatarCNPJ(cnpj) {
 }
 
 function finalizarQuestionario() {
+    console.log('🚀 [FINALIZAR] Iniciando finalização do questionário');
+    
     const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
     
     // Atualizar textos do modal
@@ -323,23 +372,53 @@ function finalizarQuestionario() {
         respostas: respostas
     };
     
+    // Debug: Log dos dados que serão enviados
+    console.log('📤 [FINALIZAR] Dados que serão enviados:');
+    console.log('📋 [FINALIZAR] dados_empresa:', JSON.stringify(dadosEmpresa, null, 2));
+    console.log('📋 [FINALIZAR] respostas:', JSON.stringify(respostas, null, 2));
+    
+    // Verificar se temos dados válidos
+    if (!dadosEmpresa || !dadosEmpresa.cnpj) {
+        loadingModal.hide();
+        showErrorModal('Dados da empresa não encontrados. Por favor, refaça o cadastro.');
+        return;
+    }
+    
+    if (!respostas || Object.keys(respostas).length === 0) {
+        loadingModal.hide();
+        showErrorModal('Respostas do questionário não encontradas. Por favor, responda todas as perguntas.');
+        return;
+    }
+    
     // Usar jQuery se disponível, senão usar fetch API
     if (window.jQuery && window.$) {
+        console.log('📡 [FINALIZAR] Usando jQuery para envio');
         $.ajax({
             url: '/processar_questionario',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(dadosCompletos),
+            timeout: 30000, // 30 segundos de timeout
             success: function(response) {
+                console.log('✅ [FINALIZAR] Resposta recebida:', response);
                 loadingModal.hide();
                 
                 if (response.status === 'success') {
+                    console.log('🎉 [FINALIZAR] Sucesso! Redirecionando para:', response.redirect);
                     window.location.href = response.redirect;
                 } else {
-                    alert('Erro: ' + response.message);
+                    console.error('❌ [FINALIZAR] Erro na resposta:', response.message);
+                    showErrorModal('Erro: ' + response.message);
                 }
             },
             error: function(xhr, status, error) {
+                console.error('❌ [FINALIZAR] Erro AJAX:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                
                 loadingModal.hide();
                 
                 let errorMessage = 'Erro ao processar questionário.';
@@ -347,13 +426,20 @@ function finalizarQuestionario() {
                     const errorData = JSON.parse(xhr.responseText);
                     errorMessage = errorData.message || errorMessage;
                 } catch (e) {
-                    // Usar mensagem padrão
+                    if (xhr.status === 500) {
+                        errorMessage = 'Erro interno do servidor. Nossa equipe foi notificada.';
+                    } else if (xhr.status === 400) {
+                        errorMessage = 'Dados inválidos enviados. Por favor, verifique as informações.';
+                    } else if (xhr.status === 0) {
+                        errorMessage = 'Erro de conexão. Verifique sua internet.';
+                    }
                 }
                 
-                alert(errorMessage + ' Por favor, tente novamente.');
+                showErrorModal(errorMessage + ' Por favor, tente novamente.');
             }
         });
     } else {
+        console.log('📡 [FINALIZAR] Usando Fetch API para envio');
         // Fallback usando fetch API
         fetch('/processar_questionario', {
             method: 'POST',
@@ -362,22 +448,37 @@ function finalizarQuestionario() {
             },
             body: JSON.stringify(dadosCompletos)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 [FINALIZAR] Status da resposta:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('✅ [FINALIZAR] Dados recebidos:', data);
             loadingModal.hide();
             
             if (data.status === 'success') {
+                console.log('🎉 [FINALIZAR] Sucesso! Redirecionando para:', data.redirect);
                 window.location.href = data.redirect;
             } else {
-                alert('Erro: ' + data.message);
+                console.error('❌ [FINALIZAR] Erro na resposta:', data.message);
+                showErrorModal('Erro: ' + data.message);
             }
         })
         .catch(error => {
+            console.error('❌ [FINALIZAR] Erro Fetch:', error);
             loadingModal.hide();
-            console.error('Erro ao processar questionário:', error);
-            alert('Erro ao processar questionário. Por favor, tente novamente.');
+            showErrorModal('Erro ao processar questionário: ' + error.message + '. Por favor, tente novamente.');
         });
     }
+}
+
+function showErrorModal(message) {
+    // Usar alert simples como fallback
+    alert(message);
 }
 
 // Event listeners para as opções

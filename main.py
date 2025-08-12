@@ -604,6 +604,41 @@ def questionario():
 def processar_questionario():
     try:
         print("=== INICIANDO PROCESSAMENTO ===")
+        print(f"🕒 Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"🌐 Request method: {request.method}")
+        print(f"📍 Request path: {request.path}")
+        print(f"🔍 Content-Type: {request.content_type}")
+        
+        # Log completo dos dados recebidos
+        try:
+            dados = request.get_json()
+            print(f"📦 Dados recebidos (type: {type(dados)}): {dados}")
+            
+            # Log específico de campos críticos
+            if dados and isinstance(dados, dict):
+                print("=== ANÁLISE DETALHADA DOS DADOS ===")
+                print(f"🔑 Keys principais: {list(dados.keys())}")
+                
+                if 'dados_empresa' in dados:
+                    empresa = dados['dados_empresa']
+                    print(f"👔 Empresa keys: {list(empresa.keys()) if isinstance(empresa, dict) else 'NOT DICT'}")
+                    print(f"📋 CNPJ: {empresa.get('cnpj') if isinstance(empresa, dict) else 'N/A'}")
+                    print(f"📧 Email: {empresa.get('email') if isinstance(empresa, dict) else 'N/A'}")
+                    print(f"📱 WhatsApp: {empresa.get('whatsapp') if isinstance(empresa, dict) else 'N/A'}")
+                
+                if 'respostas' in dados:
+                    respostas = dados['respostas']
+                    print(f"📝 Respostas type: {type(respostas)}")
+                    print(f"📝 Respostas keys: {list(respostas.keys()) if isinstance(respostas, dict) else 'NOT DICT'}")
+                    print(f"📝 Total respostas: {len(respostas) if isinstance(respostas, dict) else 'N/A'}")
+                
+                print("=====================================")
+            else:
+                print("❌ DADOS NULOS OU INVÁLIDOS")
+                
+        except Exception as log_error:
+            print(f"❌ ERRO ao fazer log dos dados: {str(log_error)}")
+            dados = request.get_json()  # Tentar novamente sem log
         
         # Verificar configuração do Supabase
         if not supabase:
@@ -614,8 +649,6 @@ def processar_questionario():
                 'status': 'error',
                 'message': 'Banco de dados não configurado. Verifique as variáveis de ambiente.'
             }), 500
-        
-        dados = request.get_json()
         
         if not dados:
             print("❌ ERRO: Dados JSON não recebidos")
@@ -702,14 +735,46 @@ def processar_questionario():
         })
         
     except Exception as e:
-        print(f"❌ ERRO CRÍTICO no processamento: {str(e)}")
-        print(f"❌ Tipo do erro: {type(e).__name__}")
+        print("=" * 60)
+        print("❌ ERRO CRÍTICO no processamento")
+        print("=" * 60)
+        print(f"🕒 Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"❌ Erro: {str(e)}")
+        print(f"❌ Tipo: {type(e).__name__}")
+        print(f"📍 Módulo: {e.__class__.__module__}")
+        
+        # Stack trace completo
         import traceback
+        print("📚 Stack trace completo:")
         traceback.print_exc()
+        
+        # Tentar capturar dados do request para debug
+        try:
+            print("🔍 DEBUG - Dados do request:")
+            print(f"   Method: {request.method}")
+            print(f"   Path: {request.path}")
+            print(f"   Content-Type: {request.content_type}")
+            print(f"   Content-Length: {request.content_length}")
+            
+            # Tentar pegar dados do JSON novamente
+            try:
+                debug_data = request.get_json()
+                if debug_data:
+                    print(f"   JSON válido: Sim (keys: {list(debug_data.keys()) if isinstance(debug_data, dict) else 'não é dict'})")
+                else:
+                    print("   JSON válido: Não")
+            except Exception as json_error:
+                print(f"   JSON Error: {json_error}")
+                
+        except Exception as debug_error:
+            print(f"⚠️ Erro no debug: {debug_error}")
+        
+        print("=" * 60)
         
         return jsonify({
             'status': 'error',
-            'message': f'Erro interno do servidor. Detalhes: {str(e)}'
+            'message': f'Erro interno do servidor: {type(e).__name__}',
+            'details': str(e)
         }), 500
 
 @app.route('/resultado')
