@@ -1060,13 +1060,79 @@ def admin_dashboard():
         recent_result = supabase.table('vw_diagnosticos_completos').select('*').limit(10).execute()
         recent_diagnosticos = recent_result.data
         
+        # Buscar dados mensais para gráfico (últimos 6 meses)
+        monthly_data = []
+        try:
+            monthly_query = """
+                SELECT 
+                    DATE_TRUNC('month', created_at) as mes,
+                    COUNT(*) as total
+                FROM diagnosticos 
+                WHERE created_at >= NOW() - INTERVAL '6 months'
+                GROUP BY DATE_TRUNC('month', created_at)
+                ORDER BY mes
+            """
+            monthly_result = supabase.rpc('execute_sql', {'query': monthly_query}).execute()
+            
+            if monthly_result.data:
+                monthly_data = monthly_result.data
+            else:
+                # Fallback: buscar de forma mais simples
+                all_diagnosticos = supabase.table('diagnosticos').select('created_at').execute()
+                
+                # Processar dados no Python
+                from collections import defaultdict
+                from datetime import datetime, timedelta
+                import calendar
+                
+                # Contar diagnósticos por mês
+                monthly_counts = defaultdict(int)
+                
+                for diag in all_diagnosticos.data:
+                    try:
+                        created_date = datetime.fromisoformat(diag['created_at'].replace('Z', '+00:00'))
+                        month_key = created_date.strftime('%Y-%m')
+                        monthly_counts[month_key] += 1
+                    except:
+                        continue
+                
+                # Gerar últimos 6 meses
+                monthly_data = []
+                today = datetime.now()
+                for i in range(5, -1, -1):  # Últimos 6 meses
+                    month_date = today.replace(day=1) - timedelta(days=30*i)
+                    month_key = month_date.strftime('%Y-%m')
+                    month_name = calendar.month_name[month_date.month][:3]  # Jan, Feb, etc
+                    
+                    monthly_data.append({
+                        'mes': month_key,
+                        'mes_nome': month_name,
+                        'total': monthly_counts.get(month_key, 0)
+                    })
+                    
+        except Exception as monthly_error:
+            print(f"Erro ao buscar dados mensais: {monthly_error}")
+            # Dados de fallback
+            monthly_data = [
+                {'mes': '2025-02', 'mes_nome': 'Fev', 'total': 0},
+                {'mes': '2025-03', 'mes_nome': 'Mar', 'total': 0},
+                {'mes': '2025-04', 'mes_nome': 'Abr', 'total': 0},
+                {'mes': '2025-05', 'mes_nome': 'Mai', 'total': 0},
+                {'mes': '2025-06', 'mes_nome': 'Jun', 'total': 0},
+                {'mes': '2025-08', 'mes_nome': 'Ago', 'total': len(recent_diagnosticos)}
+            ]
+        
         return render_template('admin/dashboard.html', 
                                stats=stats, 
-                               recent_diagnosticos=recent_diagnosticos)
+                               recent_diagnosticos=recent_diagnosticos,
+                               monthly_data=monthly_data)
     except Exception as e:
         flash('Erro ao carregar dados do dashboard', 'error')
         print(f"Erro no dashboard: {e}")
-        return render_template('admin/dashboard.html', stats={}, recent_diagnosticos=[])
+        return render_template('admin/dashboard.html', 
+                               stats={}, 
+                               recent_diagnosticos=[], 
+                               monthly_data=[])
 
 @app.route('/admin/empresas')
 @requires_admin

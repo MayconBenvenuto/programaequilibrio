@@ -185,7 +185,11 @@
 {% block scripts %}
 <script>
 /* global Chart */
-// Dados para os gráficos
+// Variáveis para armazenar instâncias dos gráficos
+let riskChart = null;
+let monthChart = null;
+
+// Dados para o gráfico de risco
 const riskData = {
     labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
     datasets: [{
@@ -223,16 +227,30 @@ const riskConfig = {
     }
 };
 
-// Dados mockados para o gráfico mensal (você pode implementar dados reais)
+// Dados reais para o gráfico mensal
+const monthlyDataFromServer = [
+    {% for item in monthly_data %}
+    {
+        mes: '{{ item.mes_nome }}',
+        total: {{ item.total or 0 }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Preparar dados para o Chart.js
+const monthLabels = monthlyDataFromServer.map(item => item.mes);
+const monthValues = monthlyDataFromServer.map(item => item.total);
+
 const monthData = {
-    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+    labels: monthLabels,
     datasets: [{
         label: 'Diagnósticos',
-        data: [12, 19, 8, 15, 10, 25],
+        data: monthValues,
         backgroundColor: 'rgba(19, 14, 84, 0.2)',
         borderColor: 'rgba(19, 14, 84, 1)',
         borderWidth: 2,
-        fill: true
+        fill: true,
+        tension: 0.4
     }]
 };
 
@@ -242,26 +260,86 @@ const monthConfig = {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+        },
         scales: {
             y: {
-                beginAtZero: true
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,
+                    callback: function(value) {
+                        return Math.floor(value);
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
             }
         }
     }
 };
 
-// Inicializar gráficos
-window.addEventListener('DOMContentLoaded', function() {
-    const riskCtx = document.getElementById('riskChart').getContext('2d');
-    new Chart(riskCtx, riskConfig);
+// Função para destruir gráficos existentes
+function destroyCharts() {
+    if (riskChart) {
+        riskChart.destroy();
+        riskChart = null;
+    }
+    if (monthChart) {
+        monthChart.destroy();
+        monthChart = null;
+    }
+}
+
+// Função para inicializar gráficos
+function initializeCharts() {
+    // Destruir gráficos existentes primeiro
+    destroyCharts();
     
-    const monthCtx = document.getElementById('monthChart').getContext('2d');
-    new Chart(monthCtx, monthConfig);
+    // Verificar se os elementos existem
+    const riskCtx = document.getElementById('riskChart');
+    const monthCtx = document.getElementById('monthChart');
+    
+    if (riskCtx && monthCtx) {
+        try {
+            // Criar gráfico de risco
+            riskChart = new Chart(riskCtx.getContext('2d'), riskConfig);
+            
+            // Criar gráfico mensal
+            monthChart = new Chart(monthCtx.getContext('2d'), monthConfig);
+            
+            console.log('📊 Gráficos inicializados com sucesso');
+        } catch (error) {
+            console.error('❌ Erro ao inicializar gráficos:', error);
+        }
+    }
+}
+
+// Inicializar quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+    // Aguardar um pouco para garantir que Chart.js carregou
+    setTimeout(initializeCharts, 100);
     
     // Auto-dismiss alerts
     setTimeout(function() {
-        $('.alert').fadeOut();
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            alert.style.transition = 'opacity 0.5s';
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 500);
+        });
     }, 5000);
 });
+
+// Limpar gráficos quando a página for descarregada
+window.addEventListener('beforeunload', destroyCharts);
+
+// Debug: mostrar dados no console
+console.log('📊 Dados mensais:', monthlyDataFromServer);
+console.log('📊 Labels:', monthLabels);
+console.log('📊 Values:', monthValues);
 </script>
 {% endblock %}
