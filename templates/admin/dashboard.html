@@ -199,7 +199,11 @@ try {
                             <tr>
                                 <td>
                                     <small class="text-muted">
-                                        {{ diagnostico.data_diagnostico.strftime('%d/%m/%Y %H:%M') if diagnostico.data_diagnostico else 'N/A' }}
+                                        {% if diagnostico.data_diagnostico %}
+                                            {{ diagnostico.data_diagnostico[:16].replace('T', ' ') if diagnostico.data_diagnostico else 'N/A' }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
                                     </small>
                                 </td>
                                 <td>
