@@ -1073,6 +1073,16 @@ def test_urls():
     
     return jsonify(test_urls)
 
+@app.route('/test/fix')
+def test_fix():
+    """Teste se o fix foi aplicado"""
+    return jsonify({
+        'status': 'fixed',
+        'timestamp': datetime.now().isoformat(),
+        'version': 'v2.0',
+        'fix_applied': True
+    })
+
 @app.route('/admin')
 @app.route('/admin/dashboard')
 @requires_admin
