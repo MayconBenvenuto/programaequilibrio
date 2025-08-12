@@ -1082,50 +1082,36 @@ def admin_dashboard():
         return redirect('/')
     
     try:
-        print("🔍 [DEBUG] Iniciando busca de estatísticas...")
+        print("🔍 [DEBUG] Usando consultas diretas...")
         
-        # Buscar estatísticas totais (agregando todos os meses)
-        stats_result = supabase.table('vw_estatisticas_admin').select('*').execute()
-        print(f"🔍 [DEBUG] Resultado da view: {len(stats_result.data) if stats_result.data else 0} registros")
+        # 1. Buscar total de empresas
+        empresas_result = supabase.table('empresas').select('id, num_colaboradores').execute()
+        total_empresas = len(empresas_result.data)
+        total_colaboradores = sum(emp['num_colaboradores'] or 0 for emp in empresas_result.data)
+        print(f"🔍 [DEBUG] Empresas: {total_empresas}, Colaboradores: {total_colaboradores}")
         
-        if stats_result.data:
-            # Agregar dados de todos os meses
-            total_empresas = 0
-            total_diagnosticos = 0
-            diagnosticos_risco_alto = 0
-            diagnosticos_risco_moderado = 0
-            diagnosticos_risco_baixo = 0
-            total_colaboradores = 0
-            
-            for i, row in enumerate(stats_result.data):
-                print(f"🔍 [DEBUG] Registro {i}: empresas={row.get('total_empresas')}, diagnosticos={row.get('total_diagnosticos')}")
-                
-                if row.get('total_empresas'):
-                    total_empresas = max(total_empresas, row.get('total_empresas', 0))
-                if row.get('total_diagnosticos'):
-                    total_diagnosticos += row.get('total_diagnosticos', 0)
-                if row.get('diagnosticos_risco_alto'):
-                    diagnosticos_risco_alto += row.get('diagnosticos_risco_alto', 0)
-                if row.get('diagnosticos_risco_moderado'):
-                    diagnosticos_risco_moderado += row.get('diagnosticos_risco_moderado', 0)
-                if row.get('diagnosticos_risco_baixo'):
-                    diagnosticos_risco_baixo += row.get('diagnosticos_risco_baixo', 0)
-                if row.get('total_colaboradores_analisados'):
-                    total_colaboradores = max(total_colaboradores, row.get('total_colaboradores_analisados', 0))
-            
-            stats = {
-                'total_empresas': total_empresas,
-                'total_diagnosticos': total_diagnosticos,
-                'diagnosticos_risco_alto': diagnosticos_risco_alto,
-                'diagnosticos_risco_moderado': diagnosticos_risco_moderado,
-                'diagnosticos_risco_baixo': diagnosticos_risco_baixo,
-                'total_colaboradores_analisados': total_colaboradores
-            }
-            
-            print(f"🔍 [DEBUG] Stats finais: {stats}")
-        else:
-            print("🔍 [DEBUG] Nenhum dado encontrado na view")
-            stats = {}
+        # 2. Buscar diagnósticos e contagem por risco
+        diagnosticos_result = supabase.table('diagnosticos').select('id, nivel_risco').execute()
+        total_diagnosticos = len(diagnosticos_result.data)
+        
+        # Contar por nível de risco
+        diagnosticos_risco_alto = len([d for d in diagnosticos_result.data if d['nivel_risco'] == 'Alto'])
+        diagnosticos_risco_moderado = len([d for d in diagnosticos_result.data if d['nivel_risco'] == 'Moderado'])
+        diagnosticos_risco_baixo = len([d for d in diagnosticos_result.data if d['nivel_risco'] == 'Baixo'])
+        
+        print(f"🔍 [DEBUG] Diagnósticos: {total_diagnosticos} (Alto: {diagnosticos_risco_alto}, Moderado: {diagnosticos_risco_moderado}, Baixo: {diagnosticos_risco_baixo})")
+        
+        # Montar estatísticas
+        stats = {
+            'total_empresas': total_empresas,
+            'total_diagnosticos': total_diagnosticos,
+            'diagnosticos_risco_alto': diagnosticos_risco_alto,
+            'diagnosticos_risco_moderado': diagnosticos_risco_moderado,
+            'diagnosticos_risco_baixo': diagnosticos_risco_baixo,
+            'total_colaboradores_analisados': total_colaboradores
+        }
+        
+        print(f"🔍 [DEBUG] Stats finais: {stats}")
         
         # Buscar diagnósticos recentes
         recent_result = supabase.table('vw_diagnosticos_completos').select('*').limit(10).execute()
