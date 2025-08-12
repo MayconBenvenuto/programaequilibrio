@@ -1052,9 +1052,42 @@ def admin_dashboard():
         return redirect('/')
     
     try:
-        # Buscar estatísticas
-        stats_result = supabase.table('vw_estatisticas_admin').select('*').limit(1).execute()
-        stats = stats_result.data[0] if stats_result.data else {}
+        # Buscar estatísticas totais (agregando todos os meses)
+        stats_result = supabase.table('vw_estatisticas_admin').select('*').execute()
+        
+        if stats_result.data:
+            # Agregar dados de todos os meses
+            total_empresas = 0
+            total_diagnosticos = 0
+            diagnosticos_risco_alto = 0
+            diagnosticos_risco_moderado = 0
+            diagnosticos_risco_baixo = 0
+            total_colaboradores = 0
+            
+            for row in stats_result.data:
+                if row['total_empresas']:
+                    total_empresas = max(total_empresas, row['total_empresas'])  # Usar o máximo pois empresas não se somam por mês
+                if row['total_diagnosticos']:
+                    total_diagnosticos += row['total_diagnosticos']
+                if row['diagnosticos_risco_alto']:
+                    diagnosticos_risco_alto += row['diagnosticos_risco_alto']
+                if row['diagnosticos_risco_moderado']:
+                    diagnosticos_risco_moderado += row['diagnosticos_risco_moderado']
+                if row['diagnosticos_risco_baixo']:
+                    diagnosticos_risco_baixo += row['diagnosticos_risco_baixo']
+                if row['total_colaboradores_analisados']:
+                    total_colaboradores = max(total_colaboradores, row['total_colaboradores_analisados'])
+            
+            stats = {
+                'total_empresas': total_empresas,
+                'total_diagnosticos': total_diagnosticos,
+                'diagnosticos_risco_alto': diagnosticos_risco_alto,
+                'diagnosticos_risco_moderado': diagnosticos_risco_moderado,
+                'diagnosticos_risco_baixo': diagnosticos_risco_baixo,
+                'total_colaboradores_analisados': total_colaboradores
+            }
+        else:
+            stats = {}
         
         # Buscar diagnósticos recentes
         recent_result = supabase.table('vw_diagnosticos_completos').select('*').limit(10).execute()
