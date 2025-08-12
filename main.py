@@ -1,3 +1,4 @@
+
 import sys
 import os
 from flask import Flask, render_template, request, jsonify, send_file, url_for, redirect, session, flash
@@ -635,6 +636,74 @@ def validar_cnpj_route():
     
     return jsonify(resposta)
 
+@app.route('/admin/empresa_detalhes/<cnpj>')
+@requires_admin
+def admin_empresa_detalhes_json(cnpj):
+    if not supabase:
+        return {"error": "Supabase não configurado"}, 500
+    try:
+        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj).limit(1).execute()
+        if not empresa_result.data:
+            return {"error": "Empresa não encontrada"}, 404
+        empresa = empresa_result.data[0]
+        return empresa, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/admin/exportar_empresa_pdf/<cnpj>')
+@requires_admin
+def exportar_empresa_pdf(cnpj):
+    if not supabase:
+        return {"error": "Supabase não configurado"}, 500
+    try:
+        # Buscar dados da empresa
+        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj).limit(1).execute()
+        if not empresa_result.data:
+            return {"error": "Empresa não encontrada"}, 404
+        
+        empresa = empresa_result.data[0]
+        
+        # Gerar PDF usando a função existente
+        dados_para_pdf = {
+            'dados_empresa': {
+                'razao_social': empresa.get('razao_social', ''),
+                'nome_fantasia': empresa.get('nome_fantasia', ''),
+                'cnpj': empresa.get('cnpj', ''),
+                'email': empresa.get('email', ''),
+                'telefone': empresa.get('telefone', ''),
+                'whatsapp': empresa.get('whatsapp', ''),
+                'num_colaboradores': empresa.get('num_colaboradores', ''),
+                'setor_atividade': empresa.get('setor_atividade', ''),
+                'rh_responsavel': empresa.get('rh_responsavel', ''),
+                'cargo_rh': empresa.get('cargo_rh', '')
+            },
+            'analise': {
+                'nivel_risco': empresa.get('nivel_risco', 'Baixo'),
+                'questoes_criticas': empresa.get('questoes_criticas', 0),
+                'areas_foco': empresa.get('areas_foco', []),
+                'acoes_recomendadas': empresa.get('acoes_recomendadas', [])
+            },
+            'data_diagnostico': empresa.get('data_diagnostico', '')
+        }
+        
+        # Gerar PDF
+        pdf_buffer = criar_pdf_relatorio(dados_para_pdf)
+        
+        # Nome do arquivo
+        nome_empresa = empresa.get('razao_social', 'Empresa').replace('/', '_').replace('\\', '_')
+        filename = f"Diagnostico_{nome_empresa}_{cnpj.replace('.', '').replace('/', '').replace('-', '')}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        print(f"Erro ao gerar PDF: {e}")
+        return {"error": f"Erro ao gerar PDF: {str(e)}"}, 500
+
 @app.route('/')
 def index():
     return render_template('index.html', hide_navbar=True)
@@ -1181,8 +1250,22 @@ def admin_empresas():
         end = start + per_page - 1
         
         result = query.range(start, end).order('data_diagnostico', desc=True).execute()
+        from datetime import datetime
         empresas = result.data
-        
+        # Corrigir campo data_diagnostico para datetime
+        for empresa in empresas:
+            data_str = empresa.get('data_diagnostico')
+            if data_str and isinstance(data_str, str):
+                try:
+                    # Tenta converter formatos comuns
+                    if 'T' in data_str:
+                        empresa['data_diagnostico'] = datetime.fromisoformat(data_str.replace('Z', ''))
+                    else:
+                        empresa['data_diagnostico'] = datetime.strptime(data_str, '%Y-%m-%d %H:%M:%S')
+                except Exception as err:
+                    print(f"[WARN] Não foi possível converter data_diagnostico: {data_str} - {err}")
+                    empresa['data_diagnostico'] = None
+
         return render_template('admin/empresas.html', 
                                empresas=empresas, 
                                search=search,

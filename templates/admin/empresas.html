@@ -3,6 +3,14 @@
 {% block page_title %}Empresas{% endblock %}
 
 {% block content %}
+<!-- DEBUG: Mostrar dados recebidos
+<div class="debug-info" style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:5px;padding:10px;margin-bottom:20px;font-family:monospace;font-size:12px;">
+    <strong>🐛 DEBUG - empresas:</strong><br>
+    {{ empresas|tojson }}<br>
+    <strong>search:</strong> {{ search }}<br>
+    <strong>page:</strong> {{ page }}<br>
+</div> -->
+
 <div class="row mb-4">
     <div class="col-md-8">
         <h2 class="fw-bold mb-0">Empresas Cadastradas</h2>
@@ -179,19 +187,97 @@
 function verDetalhes(cnpj) {
     $('#detalhesModal').modal('show');
     
-    // Aqui você pode fazer uma requisição AJAX para buscar os detalhes
+    // Mostrar loading
     $('#detalhesContent').html(`
         <div class="text-center">
-            <i class="fas fa-info-circle fa-3x text-primary mb-3"></i>
-            <h5>Funcionalidade em Desenvolvimento</h5>
-            <p class="text-muted">Em breve você poderá visualizar todos os detalhes da empresa ${cnpj}</p>
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando detalhes da empresa...</p>
         </div>
     `);
+    
+    // Fazer requisição AJAX para buscar detalhes
+    $.ajax({
+        url: `/admin/empresa_detalhes/${cnpj}`,
+        type: 'GET',
+        success: function(empresa) {
+            // Construir HTML com os detalhes
+            const detalhesHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary">📋 Dados da Empresa</h6>
+                        <p><strong>Razão Social:</strong> ${empresa.razao_social || 'N/A'}</p>
+                        ${empresa.nome_fantasia ? `<p><strong>Nome Fantasia:</strong> ${empresa.nome_fantasia}</p>` : ''}
+                        <p><strong>CNPJ:</strong> ${empresa.cnpj || 'N/A'}</p>
+                        <p><strong>Setor:</strong> ${empresa.setor_atividade || 'N/A'}</p>
+                        <p><strong>Colaboradores:</strong> ${empresa.num_colaboradores || 'N/A'}</p>
+                        
+                        <h6 class="fw-bold text-primary mt-3">👥 Contato RH</h6>
+                        <p><strong>Responsável:</strong> ${empresa.rh_responsavel || 'N/A'}</p>
+                        ${empresa.cargo_rh ? `<p><strong>Cargo:</strong> ${empresa.cargo_rh}</p>` : ''}
+                        ${empresa.email ? `<p><strong>Email:</strong> <a href="mailto:${empresa.email}">${empresa.email}</a></p>` : ''}
+                        ${empresa.whatsapp ? `<p><strong>WhatsApp:</strong> <a href="https://wa.me/${empresa.whatsapp.replace(/[^0-9]/g, '')}" target="_blank">${empresa.whatsapp}</a></p>` : ''}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary">📊 Último Diagnóstico</h6>
+                        <p><strong>Data:</strong> ${empresa.data_diagnostico ? new Date(empresa.data_diagnostico).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                        <p><strong>Nível de Risco:</strong> 
+                            <span class="badge ${empresa.nivel_risco === 'Alto' ? 'bg-danger' : empresa.nivel_risco === 'Moderado' ? 'bg-warning' : 'bg-success'}">
+                                ${empresa.nivel_risco || 'Baixo'}
+                            </span>
+                        </p>
+                        ${empresa.questoes_criticas ? `<p><strong>Questões Críticas:</strong> ${empresa.questoes_criticas}</p>` : ''}
+                        
+                        <h6 class="fw-bold text-primary mt-3">🎯 Áreas de Foco</h6>
+                        ${empresa.areas_foco && empresa.areas_foco.length > 0 ? 
+                            `<ul class="list-unstyled">${empresa.areas_foco.map(area => `<li>• ${area}</li>`).join('')}</ul>` : 
+                            '<p class="text-muted">Nenhuma área de foco identificada</p>'
+                        }
+                    </div>
+                </div>
+                
+                <hr>
+                <div class="text-center">
+                    <button class="btn btn-outline-success" onclick="exportarPDF('${cnpj}')">
+                        <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                    </button>
+                </div>
+            `;
+            
+            $('#detalhesContent').html(detalhesHTML);
+        },
+        error: function(xhr, status, error) {
+            console.error('Erro ao carregar detalhes:', error);
+            $('#detalhesContent').html(`
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5>Erro ao carregar detalhes</h5>
+                    <p class="text-muted">${xhr.responseJSON ? xhr.responseJSON.error : 'Erro desconhecido'}</p>
+                    <button class="btn btn-outline-primary" onclick="verDetalhes('${cnpj}')">
+                        <i class="fas fa-refresh me-2"></i>Tentar Novamente
+                    </button>
+                </div>
+            `);
+        }
+    });
 }
 
 function exportarPDF(cnpj) {
-    // Implementar exportação de PDF
-    alert('Funcionalidade de exportação em desenvolvimento para CNPJ: ' + cnpj);
+    // Mostrar loading
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando PDF...';
+    button.disabled = true;
+    
+    // Fazer download do PDF
+    window.location.href = `/admin/exportar_empresa_pdf/${cnpj}`;
+    
+    // Restaurar botão após um tempo
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }, 3000);
 }
 
 $(document).ready(function() {
