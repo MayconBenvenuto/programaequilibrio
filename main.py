@@ -8,6 +8,7 @@ from datetime import datetime
 import io
 import base64
 import requests
+from urllib.parse import unquote
 
 # Importações condicionais para evitar erros na Vercel
 try:
@@ -636,13 +637,15 @@ def validar_cnpj_route():
     
     return jsonify(resposta)
 
-@app.route('/admin/empresa_detalhes/<cnpj>')
+@app.route('/admin/empresa_detalhes/<path:cnpj>')
 @requires_admin
 def admin_empresa_detalhes_json(cnpj):
     if not supabase:
         return {"error": "Supabase não configurado"}, 500
     try:
-        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj).limit(1).execute()
+        # CNPJ já vem decodificado quando usamos <path:cnpj>
+        cnpj_decoded = cnpj
+        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj_decoded).limit(1).execute()
         if not empresa_result.data:
             return {"error": "Empresa não encontrada"}, 404
         empresa = empresa_result.data[0]
@@ -650,15 +653,21 @@ def admin_empresa_detalhes_json(cnpj):
     except Exception as e:
         return {"error": str(e)}, 500
 
-@app.route('/admin/exportar_empresa_pdf/<cnpj>')
+@app.route('/admin/exportar_empresa_pdf/<path:cnpj>')
 @requires_admin
 def exportar_empresa_pdf(cnpj):
     if not supabase:
         return {"error": "Supabase não configurado"}, 500
     try:
+        # CNPJ já vem decodificado quando usamos <path:cnpj>
+        cnpj_decoded = cnpj
+        print(f"🔍 [DEBUG] CNPJ recebido: {cnpj}")
+        print(f"🔍 [DEBUG] CNPJ decodificado: {cnpj_decoded}")
+        
         # Buscar dados da empresa
-        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj).limit(1).execute()
+        empresa_result = supabase.table('vw_diagnosticos_completos').select('*').eq('cnpj', cnpj_decoded).limit(1).execute()
         if not empresa_result.data:
+            print(f"❌ [DEBUG] Empresa não encontrada para CNPJ: {cnpj_decoded}")
             return {"error": "Empresa não encontrada"}, 404
         
         empresa = empresa_result.data[0]
@@ -687,11 +696,15 @@ def exportar_empresa_pdf(cnpj):
         }
         
         # Gerar PDF
-        pdf_buffer = criar_pdf_relatorio(dados_para_pdf)
+        pdf_bytes = criar_pdf_relatorio(dados_para_pdf)
+        
+        # Criar buffer para send_file
+        pdf_buffer = io.BytesIO(pdf_bytes)
+        pdf_buffer.seek(0)
         
         # Nome do arquivo
         nome_empresa = empresa.get('razao_social', 'Empresa').replace('/', '_').replace('\\', '_')
-        filename = f"Diagnostico_{nome_empresa}_{cnpj.replace('.', '').replace('/', '').replace('-', '')}.pdf"
+        filename = f"Diagnostico_{nome_empresa}_{cnpj_decoded.replace('.', '').replace('/', '').replace('-', '')}.pdf"
         
         return send_file(
             pdf_buffer,
@@ -703,6 +716,7 @@ def exportar_empresa_pdf(cnpj):
     except Exception as e:
         print(f"Erro ao gerar PDF: {e}")
         return {"error": f"Erro ao gerar PDF: {str(e)}"}, 500
+
 
 @app.route('/')
 def index():

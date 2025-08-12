@@ -271,7 +271,7 @@ function exportarPDF(cnpj) {
     button.disabled = true;
     
     // Fazer download do PDF
-    window.location.href = `/admin/exportar_empresa_pdf/${cnpj}`;
+    window.open(`/admin/exportar_empresa_pdf/${cnpj}`, '_blank');
     
     // Restaurar botão após um tempo
     setTimeout(() => {
