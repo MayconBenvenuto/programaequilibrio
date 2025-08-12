@@ -3,6 +3,14 @@
 {% block title %}Resultado do Diagnóstico - Programa Equilíbrio{% endblock %}
 
 {% block content %}
+<!-- DEBUG: Mostrar estrutura dos dados 
+<div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:5px;padding:10px;margin-bottom:20px;font-family:monospace;font-size:12px;">
+    <strong>🐛 DEBUG - Dados recebidos:</strong><br>
+    dados: {{ dados|tojson }}<br>
+    <strong>Keys em dados:</strong> {{ dados.keys()|list if dados else 'N/A' }}<br>
+    <strong>analise exists:</strong> {{ 'analise' in dados if dados else 'N/A' }}<br>
+</div>-->
+
 <div class="container py-5">
     <!-- Header do Resultado -->
     <div class="row mb-5">
@@ -183,7 +191,7 @@
                             </h5>
                         </div>
                         <div class="ms-4 ps-2">
-                            {% for acao in analise.acoes_recomendadas %}
+                            {% for acao in dados.analise.acoes_recomendadas %}
                             {% if 'Comunicação' in acao %}
                             <div class="action-item mb-2">
                                 <i class="fas fa-circle text-danger me-2" style="font-size: 6px; vertical-align: middle;"></i>

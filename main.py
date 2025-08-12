@@ -948,6 +948,10 @@ def resultado():
         
         if dados:
             print("✅ Renderizando página de resultado com dados")
+            print(f"🔍 DEBUG - Estrutura dos dados: {list(dados.keys()) if isinstance(dados, dict) else 'Não é dict'}")
+            if isinstance(dados, dict) and 'analise' in dados:
+                print(f"🔍 DEBUG - Analise existe: {type(dados['analise'])}")
+                print(f"🔍 DEBUG - Analise keys: {list(dados['analise'].keys()) if isinstance(dados['analise'], dict) else 'Não é dict'}")
             return render_template('resultado.html', dados=dados)
         else:
             print("❌ Nenhum dado encontrado para resultado")
