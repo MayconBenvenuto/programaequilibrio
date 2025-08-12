@@ -25,7 +25,48 @@
     max-width: 400px !important;
     max-height: 300px !important;
 }
+
+/* Debug info */
+.debug-info {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    font-family: monospace;
+    font-size: 12px;
+}
 </style>
+
+<!-- DEBUG: Mostrar dados recebidos -->
+<div class="debug-info">
+    <strong>🐛 DEBUG - Dados recebidos:</strong><br>
+    stats: {{ stats|tojson }}<br>
+    recent_diagnosticos: {{ recent_diagnosticos|length }} registros<br>
+    monthly_data: {{ monthly_data|length }} registros<br>
+    <hr>
+    <strong>Variáveis individuais:</strong><br>
+    total_empresas: {{ stats.total_empresas }}<br>
+    total_diagnosticos: {{ stats.total_diagnosticos }}<br>
+    diagnosticos_risco_alto: {{ stats.diagnosticos_risco_alto }}<br>
+    total_colaboradores: {{ stats.total_colaboradores_analisados }}
+</div>
+
+<!-- Variáveis de debug para JavaScript -->
+<script>
+try {
+    var debugStats = JSON.parse('{{ stats|tojson }}');
+    console.log('🐛 [DEBUG] Stats parsed:', debugStats);
+    console.log('🐛 [DEBUG] Total empresas:', debugStats.total_empresas);
+    console.log('🐛 [DEBUG] Total diagnosticos:', debugStats.total_diagnosticos);
+    if (debugStats.error) {
+        console.error('🚨 [ERROR] Backend error:', debugStats.error);
+    }
+} catch(e) {
+    console.error('🚨 [ERROR] Failed to parse stats:', e);
+    console.log('🐛 [DEBUG] Raw stats:', '{{ stats }}');
+}
+</script>
 
 <div class="row mb-4">
     <div class="col-12">
