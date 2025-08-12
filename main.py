@@ -1100,18 +1100,18 @@ def admin_dashboard():
             for i, row in enumerate(stats_result.data):
                 print(f"🔍 [DEBUG] Registro {i}: empresas={row.get('total_empresas')}, diagnosticos={row.get('total_diagnosticos')}")
                 
-                if row['total_empresas']:
-                    total_empresas = max(total_empresas, row['total_empresas'])
-                if row['total_diagnosticos']:
-                    total_diagnosticos += row['total_diagnosticos']
-                if row['diagnosticos_risco_alto']:
-                    diagnosticos_risco_alto += row['diagnosticos_risco_alto']
-                if row['diagnosticos_risco_moderado']:
-                    diagnosticos_risco_moderado += row['diagnosticos_risco_moderado']
-                if row['diagnosticos_risco_baixo']:
-                    diagnosticos_risco_baixo += row['diagnosticos_risco_baixo']
-                if row['total_colaboradores_analisados']:
-                    total_colaboradores = max(total_colaboradores, row['total_colaboradores_analisados'])
+                if row.get('total_empresas'):
+                    total_empresas = max(total_empresas, row.get('total_empresas', 0))
+                if row.get('total_diagnosticos'):
+                    total_diagnosticos += row.get('total_diagnosticos', 0)
+                if row.get('diagnosticos_risco_alto'):
+                    diagnosticos_risco_alto += row.get('diagnosticos_risco_alto', 0)
+                if row.get('diagnosticos_risco_moderado'):
+                    diagnosticos_risco_moderado += row.get('diagnosticos_risco_moderado', 0)
+                if row.get('diagnosticos_risco_baixo'):
+                    diagnosticos_risco_baixo += row.get('diagnosticos_risco_baixo', 0)
+                if row.get('total_colaboradores_analisados'):
+                    total_colaboradores = max(total_colaboradores, row.get('total_colaboradores_analisados', 0))
             
             stats = {
                 'total_empresas': total_empresas,
