@@ -107,14 +107,14 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar">
                 <div class="p-4">
-                    <div class="text-center mb-4">
-                        <h4 class="text-white fw-bold mb-0">
-                            <i class="fas fa-shield-alt me-2"></i>
-                            Admin
-                        </h4>
-                        <small class="text-white-50">Programa Equilíbrio</small>
+                    <div class="d-flex align-items-center mb-4">
+                    <img src="{{ url_for('static', filename='images/logo-conecta.png') }}" 
+                         alt="Belz Conecta Saúde" 
+                         height="60" 
+                         class="me-4">
+                         <br><small class="text-white-50">Programa Equilíbrio</small>
                     </div>
-                    
+
                     <nav class="nav flex-column">
                         <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" 
                            href="{{ url_for('admin_dashboard') }}">

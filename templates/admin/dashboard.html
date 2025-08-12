@@ -211,6 +211,37 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Dados do servidor para JavaScript -->
+<script id="chart-data" type="application/json">
+{
+    "risk": {
+        "alto": {{ stats.diagnosticos_risco_alto or 0 }},
+        "moderado": {{ stats.diagnosticos_risco_moderado or 0 }},
+        "baixo": {{ stats.diagnosticos_risco_baixo or 0 }}
+    },
+    "monthly": {
+        "labels": [
+            {% if monthly_data and monthly_data|length > 0 %}
+                {% for item in monthly_data %}
+                    "{{ item.mes_nome }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            {% else %}
+                "Fev", "Mar", "Abr", "Mai", "Jun", "Ago"
+            {% endif %}
+        ],
+        "data": [
+            {% if monthly_data and monthly_data|length > 0 %}
+                {% for item in monthly_data %}
+                    {{ item.total or 0 }}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            {% else %}
+                0, 0, 0, 0, 0, {{ recent_diagnosticos|length or 0 }}
+            {% endif %}
+        ]
+    }
+}
+</script>
+
 <script>
 // Aguardar Chart.js carregar completamente
 document.addEventListener('DOMContentLoaded', function() {
@@ -222,8 +253,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('📊 Iniciando inicialização dos gráficos...');
 
+    // Carregar dados do template
+    var chartDataScript = document.getElementById('chart-data');
+    var chartData = {};
+    
+    try {
+        chartData = JSON.parse(chartDataScript.textContent);
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados dos gráficos:', error);
+        return;
+    }
+
     // GRÁFICO DE RISCO (Pizza)
-    const riskCtx = document.getElementById('riskChart');
+    var riskCtx = document.getElementById('riskChart');
     if (riskCtx) {
         try {
             new Chart(riskCtx, {
@@ -232,9 +274,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     labels: ['Alto Risco', 'Moderado', 'Baixo Risco'],
                     datasets: [{
                         data: [
-                            {{ stats.diagnosticos_risco_alto or 0 }}, 
-                            {{ stats.diagnosticos_risco_moderado or 0 }}, 
-                            {{ stats.diagnosticos_risco_baixo or 0 }}
+                            chartData.risk.alto,
+                            chartData.risk.moderado,
+                            chartData.risk.baixo
                         ],
                         backgroundColor: [
                             'rgba(231, 111, 81, 0.8)',
@@ -265,38 +307,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // GRÁFICO MENSAL (Linha) - VERSÃO SIMPLIFICADA
-    const monthCtx = document.getElementById('monthChart');
+    // GRÁFICO MENSAL (Linha)
+    var monthCtx = document.getElementById('monthChart');
     if (monthCtx) {
         try {
-            // Dados estáticos simples para evitar problemas
-            const monthlyData = [
-                {% if monthly_data and monthly_data|length > 0 %}
-                    {% for item in monthly_data %}
-                        {{ item.total or 0 }}{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                {% else %}
-                    0, 0, 0, 0, 0, {{ recent_diagnosticos|length or 0 }}
-                {% endif %}
-            ];
-
-            const monthlyLabels = [
-                {% if monthly_data and monthly_data|length > 0 %}
-                    {% for item in monthly_data %}
-                        '{{ item.mes_nome }}'{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                {% else %}
-                    'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Ago'
-                {% endif %}
-            ];
-
+            var maxValue = Math.max.apply(Math, chartData.monthly.data);
+            
             new Chart(monthCtx, {
                 type: 'line',
                 data: {
-                    labels: monthlyLabels,
+                    labels: chartData.monthly.labels,
                     datasets: [{
                         label: 'Diagnósticos',
-                        data: monthlyData,
+                        data: chartData.monthly.data,
                         backgroundColor: 'rgba(19, 14, 84, 0.2)',
                         borderColor: 'rgba(19, 14, 84, 1)',
                         borderWidth: 2,
@@ -310,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: Math.max(...monthlyData) + 2,
+                            max: maxValue + 2,
                             ticks: {
                                 stepSize: 1
                             }
@@ -324,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            console.log('✅ Gráfico mensal criado com dados:', monthlyData);
+            console.log('✅ Gráfico mensal criado com dados:', chartData.monthly.data);
         } catch (error) {
             console.error('❌ Erro no gráfico mensal:', error);
         }
@@ -332,18 +355,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Auto-dismiss alerts
     setTimeout(function() {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
+        var alerts = document.querySelectorAll('.alert');
+        for (var i = 0; i < alerts.length; i++) {
+            var alert = alerts[i];
             if (alert) {
                 alert.style.transition = 'opacity 0.5s';
                 alert.style.opacity = '0';
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.parentNode.removeChild(alert);
-                    }
-                }, 500);
+                (function(alertElement) {
+                    setTimeout(function() {
+                        if (alertElement.parentNode) {
+                            alertElement.parentNode.removeChild(alertElement);
+                        }
+                    }, 500);
+                })(alert);
             }
-        });
+        }
     }, 5000);
 
     console.log('📊 Inicialização dos gráficos concluída');
