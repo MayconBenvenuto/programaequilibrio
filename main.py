@@ -1052,8 +1052,11 @@ def admin_dashboard():
         return redirect('/')
     
     try:
+        print("🔍 [DEBUG] Iniciando busca de estatísticas...")
+        
         # Buscar estatísticas totais (agregando todos os meses)
         stats_result = supabase.table('vw_estatisticas_admin').select('*').execute()
+        print(f"🔍 [DEBUG] Resultado da view: {len(stats_result.data) if stats_result.data else 0} registros")
         
         if stats_result.data:
             # Agregar dados de todos os meses
@@ -1064,9 +1067,11 @@ def admin_dashboard():
             diagnosticos_risco_baixo = 0
             total_colaboradores = 0
             
-            for row in stats_result.data:
+            for i, row in enumerate(stats_result.data):
+                print(f"🔍 [DEBUG] Registro {i}: empresas={row.get('total_empresas')}, diagnosticos={row.get('total_diagnosticos')}")
+                
                 if row['total_empresas']:
-                    total_empresas = max(total_empresas, row['total_empresas'])  # Usar o máximo pois empresas não se somam por mês
+                    total_empresas = max(total_empresas, row['total_empresas'])
                 if row['total_diagnosticos']:
                     total_diagnosticos += row['total_diagnosticos']
                 if row['diagnosticos_risco_alto']:
@@ -1086,7 +1091,10 @@ def admin_dashboard():
                 'diagnosticos_risco_baixo': diagnosticos_risco_baixo,
                 'total_colaboradores_analisados': total_colaboradores
             }
+            
+            print(f"🔍 [DEBUG] Stats finais: {stats}")
         else:
+            print("🔍 [DEBUG] Nenhum dado encontrado na view")
             stats = {}
         
         # Buscar diagnósticos recentes
