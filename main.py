@@ -1087,7 +1087,9 @@ def test_fix():
 @app.route('/admin/dashboard')
 @requires_admin
 def admin_dashboard():
+    print(f"🚀 [START] Admin dashboard iniciado...")
     if not supabase:
+        print(f"❌ [ERROR] Supabase não configurado")
         flash('Sistema de administração indisponível', 'error')
         return redirect('/')
     
@@ -1194,10 +1196,15 @@ def admin_dashboard():
                                recent_diagnosticos=recent_diagnosticos,
                                monthly_data=monthly_data)
     except Exception as e:
-        flash('Erro ao carregar dados do dashboard', 'error')
-        print(f"Erro no dashboard: {e}")
+        error_details = {
+            'error': str(e),
+            'type': type(e).__name__,
+            'supabase_connected': supabase is not None,
+        }
+        print(f"🚨 [ERROR] Dashboard error: {error_details}")
+        flash(f'Erro ao carregar dados do dashboard: {str(e)}', 'error')
         return render_template('admin/dashboard.html', 
-                               stats={}, 
+                               stats={'error': str(e)}, 
                                recent_diagnosticos=[], 
                                monthly_data=[])
 
