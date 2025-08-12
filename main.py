@@ -310,6 +310,49 @@ def consultar_cnpj_com_fallback(cnpj):
     print("❌ Nenhuma API retornou dados válidos")
     return None
 
+def converter_faixa_colaboradores(faixa_str):
+    """Converte faixa de colaboradores (string) para número inteiro médio"""
+    if not faixa_str or faixa_str == '':
+        return 0
+    
+    # Mapeamento das faixas para valores médios
+    mapeamento_faixas = {
+        '1-50': 25,
+        '51-100': 75,
+        '101-250': 175,
+        '251-500': 375,
+        '501-1000': 750,
+        '1000+': 1500
+    }
+    
+    # Se for um número diretamente, retornar como int
+    if str(faixa_str).isdigit():
+        return int(faixa_str)
+    
+    # Buscar no mapeamento
+    faixa_normalizada = str(faixa_str).strip()
+    if faixa_normalizada in mapeamento_faixas:
+        print(f"🔄 Convertendo '{faixa_str}' para {mapeamento_faixas[faixa_normalizada]} colaboradores")
+        return mapeamento_faixas[faixa_normalizada]
+    
+    # Tentar extrair números da string (ex: "251-500" -> 375)
+    import re
+    numeros = re.findall(r'\d+', str(faixa_str))
+    if len(numeros) >= 2:
+        inicio = int(numeros[0])
+        fim = int(numeros[1])
+        media = (inicio + fim) // 2
+        print(f"🔄 Extraindo números de '{faixa_str}': {inicio}-{fim} -> média {media}")
+        return media
+    elif len(numeros) == 1:
+        numero = int(numeros[0])
+        print(f"🔄 Extraindo número único de '{faixa_str}': {numero}")
+        return numero
+    
+    # Fallback: retornar 50 como padrão
+    print(f"⚠️ Não foi possível converter '{faixa_str}', usando 50 como padrão")
+    return 50
+
 def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
     """Salva empresa e diagnóstico no Supabase"""
     print("🔍 Iniciando salvamento no Supabase...")
@@ -336,7 +379,7 @@ def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
                 'cargo_rh': dados_empresa.get('cargo', ''),
                 'email': dados_empresa.get('email', ''),
                 'whatsapp': dados_empresa.get('whatsapp', ''),
-                'num_colaboradores': dados_empresa.get('num_colaboradores', 0),
+                'num_colaboradores': converter_faixa_colaboradores(dados_empresa.get('num_colaboradores', 0)),
                 'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
                 'updated_at': 'NOW()'
             }
@@ -360,7 +403,7 @@ def salvar_empresa_diagnostico(dados_empresa, respostas, analise):
                 'telefone': dados_empresa.get('telefone', ''),
                 'whatsapp': dados_empresa.get('whatsapp', ''),
                 'endereco': dados_empresa.get('endereco', {}),
-                'num_colaboradores': dados_empresa.get('num_colaboradores', 0),
+                'num_colaboradores': converter_faixa_colaboradores(dados_empresa.get('num_colaboradores', 0)),
                 'setor_atividade': dados_empresa.get('setor', dados_empresa.get('atividade_principal', '')),
                 'rh_responsavel': dados_empresa.get('rh_responsavel', ''),
                 'cargo_rh': dados_empresa.get('cargo', '')
@@ -707,7 +750,7 @@ def processar_questionario():
         
         print(f"✅ Dados salvos - Empresa ID: {empresa_id}, Diagnóstico ID: {diagnostico_id}")
         
-        # Salvar dados temporariamente para geração do PDF
+        # Salvar dados para a página de resultado
         dados_completos = {
             'dados_empresa': dados_empresa,
             'respostas': respostas,
@@ -716,6 +759,14 @@ def processar_questionario():
             'diagnostico_id': diagnostico_id
         }
         
+        # Método 1: Salvar na sessão (mais confiável para serverless)
+        try:
+            session['diagnostico_data'] = dados_completos
+            print("✅ Dados salvos na sessão")
+        except Exception as session_error:
+            print(f"⚠️ Erro ao salvar na sessão: {session_error}")
+        
+        # Método 2: Arquivo temporário (fallback)
         try:
             with open('temp_diagnostico.json', 'w', encoding='utf-8') as f:
                 json.dump(dados_completos, f, ensure_ascii=False, indent=2, default=str)
@@ -731,7 +782,7 @@ def processar_questionario():
             'analise': analise,
             'empresa_id': empresa_id,
             'diagnostico_id': diagnostico_id,
-            'redirect': '/resultado'
+            'redirect': f'/resultado?diagnostico_id={diagnostico_id}'
         })
         
     except Exception as e:
@@ -779,13 +830,64 @@ def processar_questionario():
 
 @app.route('/resultado')
 def resultado():
+    """Página de resultados do diagnóstico"""
     try:
-        with open('temp_diagnostico.json', 'r', encoding='utf-8') as f:
-            dados = json.load(f)
+        # Tentar diferentes formas de obter os dados
+        dados = None
         
-        return render_template('resultado.html', dados=dados)
-    except FileNotFoundError:
-        flash('Dados do diagnóstico não encontrados. Por favor, refaça o questionário.', 'error')
+        # Método 1: Verificar se há dados na sessão
+        if 'diagnostico_data' in session:
+            print("📊 Dados encontrados na sessão")
+            dados = session['diagnostico_data']
+            # Limpar da sessão após usar
+            session.pop('diagnostico_data', None)
+        
+        # Método 2: Tentar ler arquivo temporário (fallback)
+        elif os.path.exists('temp_diagnostico.json'):
+            print("📄 Lendo dados do arquivo temporário")
+            with open('temp_diagnostico.json', 'r', encoding='utf-8') as f:
+                dados = json.load(f)
+            
+            # Remover arquivo após usar
+            try:
+                os.remove('temp_diagnostico.json')
+                print("🗑️ Arquivo temporário removido")
+            except:
+                pass
+        
+        # Método 3: Tentar buscar no banco pelo ID (se disponível)
+        elif request.args.get('diagnostico_id') and supabase:
+            diagnostico_id = request.args.get('diagnostico_id')
+            print(f"🔍 Buscando diagnóstico no banco: {diagnostico_id}")
+            
+            try:
+                # Buscar diagnóstico no Supabase
+                resultado_query = supabase.table('diagnosticos').select('*, empresas(*)').eq('id', diagnostico_id).execute()
+                
+                if resultado_query.data:
+                    diagnostico = resultado_query.data[0]
+                    dados = {
+                        'dados_empresa': diagnostico['empresas'],
+                        'respostas': diagnostico['respostas'],
+                        'analise': diagnostico['analise'],
+                        'empresa_id': diagnostico['empresa_id'],
+                        'diagnostico_id': diagnostico['id']
+                    }
+                    print("✅ Dados recuperados do banco de dados")
+            except Exception as db_error:
+                print(f"❌ Erro ao buscar no banco: {db_error}")
+        
+        if dados:
+            print("✅ Renderizando página de resultado com dados")
+            return render_template('resultado.html', dados=dados)
+        else:
+            print("❌ Nenhum dado encontrado para resultado")
+            flash('Dados do diagnóstico não encontrados. Por favor, refaça o questionário.', 'error')
+            return redirect('/')
+            
+    except Exception as e:
+        print(f"❌ Erro na página de resultado: {e}")
+        flash('Erro ao carregar resultado. Por favor, refaça o questionário.', 'error')
         return redirect('/')
 
 @app.route('/admin/login', methods=['GET', 'POST'])
